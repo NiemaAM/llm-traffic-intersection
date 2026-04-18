@@ -1,0 +1,19 @@
+{
+  "best": "zero_shot",
+  "results": {
+    "zero_shot": {
+      "accuracy": 0.45,
+      "f1": 0.4211,
+      "recall": 0.4,
+      "fnr": 0.6,
+      "avg_latency_s": 2.2025
+    },
+    "few_shot": {
+      "accuracy": 0.6,
+      "f1": 0.3333,
+      "recall": 0.2,
+      "fnr": 0.8,
+      "avg_latency_s": 1.9674
+    }
+  }
+}

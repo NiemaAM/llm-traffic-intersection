@@ -19,8 +19,6 @@ Skip fine-tuning (no cost) by setting skip_training=True — the pipeline
 will still run all evaluation and comparison steps using the base model.
 """
 
-from __future__ import annotations
-
 import os
 import time
 from pathlib import Path
