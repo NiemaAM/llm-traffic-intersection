@@ -9,11 +9,12 @@ description = "LLM-Driven Agents for Traffic Intersection Conflict Resolution"
 requires-python = ">=3.11"
 
 [tool.ruff]
-line-length = 100
+line-length = 120
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP"]
 ignore = [
+    "E501",   # line too long (some lines are inherently long: URLs, dicts, f-strings)
     "E741",   # ambiguous variable name 'l' (used in lane list comprehensions)
     "E701",   # multiple statements on one line (intentional for compact test code)
     "N803",   # argument name 'X' should be lowercase (sklearn convention)
