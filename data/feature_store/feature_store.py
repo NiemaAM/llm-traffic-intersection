@@ -15,9 +15,8 @@ from feast.types import Float32, Int32, String
 # ─── Data source ─────────────────────────────────────────────────────────────
 
 vehicle_source = FileSource(
-    path=str(Path(__file__).parent.parent / "data" / "processed" / "features.csv"),
-    timestamp_field="event_timestamp",  # add this column during preprocessing
-    created_timestamp_column="created",
+    path="/home/niema/llm-traffic-intersection/data/processed/features.parquet",
+    timestamp_field="event_timestamp",
 )
 
 # ─── Entity ───────────────────────────────────────────────────────────────────

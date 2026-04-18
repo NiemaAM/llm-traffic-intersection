@@ -1,9 +1,9 @@
 project: traffic_intersection_features
-registry: data/feature_store/registry.db
+registry: /home/niema/llm-traffic-intersection/data/feature_store/registry.db
 provider: local
 online_store:
   type: sqlite
-  path: data/feature_store/online_store.db
+  path: /home/niema/llm-traffic-intersection/data/feature_store/online_store.db
 offline_store:
   type: file
 entity_key_serialization_version: 2
