@@ -37,7 +37,7 @@ line_length = 100
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-v --tb=short"
+addopts = "--cov=src --cov-report=xml --cov-fail-under=10"
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
