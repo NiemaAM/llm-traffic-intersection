@@ -67,3 +67,6 @@ Thumbs.db
 
 # Docker
 *.log
+
+# Windows Zone.Identifier metadata files
+*.Zone.Identifier
