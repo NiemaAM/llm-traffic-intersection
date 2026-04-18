@@ -70,7 +70,22 @@ def run_evaluation(
     setup_mlflow()
 
     raw_df = pd.read_csv(raw_csv)
-    scenarios = list(raw_df.groupby("scenario_id"))[:max_eval_scenarios]
+
+    # Build a balanced sample: equal number of conflict and no-conflict scenarios
+    # This prevents the model from gaming accuracy by always predicting "no"
+    import random
+    all_scenarios = list(raw_df.groupby("scenario_id"))
+    conflict_scenarios    = [(sid, g) for sid, g in all_scenarios if g.iloc[0]["is_conflict"] == "yes"]
+    no_conflict_scenarios = [(sid, g) for sid, g in all_scenarios if g.iloc[0]["is_conflict"] == "no"]
+
+    half = max_eval_scenarios // 2
+    random.seed(42)
+    sampled = (
+        random.sample(conflict_scenarios,    min(half, len(conflict_scenarios))) +
+        random.sample(no_conflict_scenarios, min(half, len(no_conflict_scenarios)))
+    )
+    random.shuffle(sampled)
+    scenarios = sampled[:max_eval_scenarios]
 
     params = {
         "model_name":          fine_tuned_model_id or model_name,
@@ -182,7 +197,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", choices=["eval", "finetune"], default="eval")
     parser.add_argument("--model", default="gpt-4o-mini")
-    parser.add_argument("--few-shot", action="store_true", default=True)
+    parser.add_argument("--few-shot", action="store_true", default=False)
     parser.add_argument("--fine-tuned-id", default=None)
     parser.add_argument("--max-scenarios", type=int, default=50)
     args = parser.parse_args()

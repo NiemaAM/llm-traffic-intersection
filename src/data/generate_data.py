@@ -134,13 +134,16 @@ def generate_scenario(num_vehicles: int | None = None) -> list[dict]:
     conflict_meta = _detect_conflicts(vehicles)
     decisions, priorities, waiting = _assign_decisions(vehicles, conflict_meta)
 
+    # Generate ONE scenario_id shared by all vehicles in this scenario
+    scenario_id = "S" + "".join(random.choices(string.digits, k=6))
+
     records = []
     for v in vehicles:
         record = {**v, **conflict_meta,
                   "decisions": decisions,
                   "priority_order": priorities,
                   "waiting_times": waiting,
-                  "scenario_id": "S" + "".join(random.choices(string.digits, k=6))}
+                  "scenario_id": scenario_id}
         records.append(record)
     return records
 

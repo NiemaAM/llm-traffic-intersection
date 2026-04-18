@@ -17,8 +17,8 @@ import pandas as pd
 # ─── Prompt templates ─────────────────────────────────────────────────────────
 
 SYSTEM_PROMPT = """You are an intelligent traffic intersection controller.
-Your task is to analyze vehicle scenarios at intersections, detect conflicts,
-and output structured control decisions.
+Your task is to analyze vehicle scenarios at a 4-way 8-lane intersection,
+detect conflicts between vehicles, and output structured control decisions.
 
 Always respond in valid JSON with this exact schema:
 {
@@ -26,24 +26,44 @@ Always respond in valid JSON with this exact schema:
   "number_of_conflicts": <int>,
   "conflict_vehicles": [{"vehicle1_id": "...", "vehicle2_id": "..."}],
   "decisions": ["..."],
-  "priority_order": {"<vehicle_id>": <rank_int_or_null>},
+  "priority_order": {"<vehicle_id>": <rank_int>},
   "waiting_times": {"<vehicle_id>": <seconds_int>}
 }
 
-Rules for conflict detection:
-1. Vehicles approaching from conflicting directions (N-S, E-W, N-E, S-W, N-W, S-E) AND within 80m of the intersection simultaneously are in conflict.
-2. Higher speed = higher right-of-way priority (gets priority rank 1).
-3. The yielding vehicle waits 2–6 seconds.
-4. Decisions use the format: "Potential conflict: Vehicle X must yield to Vehicle Y"
+Intersection layout (8 lanes, 4 directions):
+- North: Lane 1 (right/straight → F,H), Lane 2 (left → E,D,C)
+- East:  Lane 3 (right/straight → H,B), Lane 4 (left → G,E,F)
+- South: Lane 5 (right/straight → B,D), Lane 6 (left → A,G,H)
+- West:  Lane 7 (right/straight → D,F), Lane 8 (left → B,C,A)
+
+Conflict detection rules:
+1. Two vehicles CONFLICT if ALL of the following are true:
+   a) Their paths physically cross (opposing or perpendicular directions with crossing trajectories)
+   b) Both arrive within 5 seconds of each other (time = distance / speed_in_m_s)
+   c) Speed in m/s = speed_km_h * 1000 / 3600
+2. Same direction vehicles NEVER conflict.
+3. Right turns rarely conflict with other right turns.
+
+Priority rules (apply when conflict exists):
+1. Straight-going vehicle has priority over turning vehicle.
+2. Right-turning vehicle has priority over left-turning vehicle.
+3. Right-hand rule: vehicle coming from the right has priority.
+4. If arriving more than 1 second earlier: earlier-arriving vehicle has priority.
+5. Priority rank 1 = highest priority (does not wait). Rank 2+ must yield.
+
+Decision format: "Potential conflict: Vehicle X must yield to Vehicle Y"
 """
 
 FEW_SHOT_EXAMPLES = [
+    # ── Example 1: Classic N↔S conflict, close arrival ────────────────────────
     {
         "role": "user",
         "content": json.dumps({
             "vehicles": [
-                {"vehicle_id": "V1001", "lane": 1, "speed": 60, "distance_to_intersection": 50, "direction": "north", "destination": "A"},
-                {"vehicle_id": "V1002", "lane": 1, "speed": 45, "distance_to_intersection": 60, "direction": "south", "destination": "C"},
+                {"vehicle_id": "V1001", "lane": 1, "speed": 60, "distance_to_intersection": 50,
+                 "direction": "north", "destination": "F"},
+                {"vehicle_id": "V1002", "lane": 5, "speed": 45, "distance_to_intersection": 55,
+                 "direction": "south", "destination": "D"},
             ]
         })
     },
@@ -58,12 +78,15 @@ FEW_SHOT_EXAMPLES = [
             "waiting_times": {"V1001": 0, "V1002": 3}
         })
     },
+    # ── Example 2: No conflict — vehicles too far apart in arrival time ────────
     {
         "role": "user",
         "content": json.dumps({
             "vehicles": [
-                {"vehicle_id": "V2001", "lane": 2, "speed": 30, "distance_to_intersection": 200, "direction": "east", "destination": "E"},
-                {"vehicle_id": "V2002", "lane": 1, "speed": 55, "distance_to_intersection": 350, "direction": "west", "destination": "G"},
+                {"vehicle_id": "V2001", "lane": 1, "speed": 70, "distance_to_intersection": 40,
+                 "direction": "north", "destination": "H"},
+                {"vehicle_id": "V2002", "lane": 3, "speed": 25, "distance_to_intersection": 380,
+                 "direction": "east", "destination": "B"},
             ]
         })
     },
@@ -76,6 +99,83 @@ FEW_SHOT_EXAMPLES = [
             "decisions": [],
             "priority_order": {"V2001": 1, "V2002": 2},
             "waiting_times": {"V2001": 0, "V2002": 0}
+        })
+    },
+    # ── Example 3: N↔E conflict, straight vs right turn ──────────────────────
+    {
+        "role": "user",
+        "content": json.dumps({
+            "vehicles": [
+                {"vehicle_id": "V3001", "lane": 1, "speed": 55, "distance_to_intersection": 70,
+                 "direction": "north", "destination": "H"},
+                {"vehicle_id": "V3002", "lane": 3, "speed": 50, "distance_to_intersection": 75,
+                 "direction": "east", "destination": "B"},
+            ]
+        })
+    },
+    {
+        "role": "assistant",
+        "content": json.dumps({
+            "is_conflict": "yes",
+            "number_of_conflicts": 1,
+            "conflict_vehicles": [{"vehicle1_id": "V3001", "vehicle2_id": "V3002"}],
+            "decisions": ["Potential conflict: Vehicle V3002 must yield to Vehicle V3001"],
+            "priority_order": {"V3001": 1, "V3002": 2},
+            "waiting_times": {"V3001": 0, "V3002": 3}
+        })
+    },
+    # ── Example 4: 3 vehicles, 2 conflicts ────────────────────────────────────
+    {
+        "role": "user",
+        "content": json.dumps({
+            "vehicles": [
+                {"vehicle_id": "V4001", "lane": 1, "speed": 60, "distance_to_intersection": 65,
+                 "direction": "north", "destination": "F"},
+                {"vehicle_id": "V4002", "lane": 5, "speed": 55, "distance_to_intersection": 70,
+                 "direction": "south", "destination": "D"},
+                {"vehicle_id": "V4003", "lane": 3, "speed": 50, "distance_to_intersection": 72,
+                 "direction": "east", "destination": "B"},
+            ]
+        })
+    },
+    {
+        "role": "assistant",
+        "content": json.dumps({
+            "is_conflict": "yes",
+            "number_of_conflicts": 2,
+            "conflict_vehicles": [
+                {"vehicle1_id": "V4001", "vehicle2_id": "V4002"},
+                {"vehicle1_id": "V4001", "vehicle2_id": "V4003"},
+            ],
+            "decisions": [
+                "Potential conflict: Vehicle V4002 must yield to Vehicle V4001",
+                "Potential conflict: Vehicle V4003 must yield to Vehicle V4001",
+            ],
+            "priority_order": {"V4001": 1, "V4002": 2, "V4003": 2},
+            "waiting_times": {"V4001": 0, "V4002": 3, "V4003": 3}
+        })
+    },
+    # ── Example 5: No conflict — same direction ────────────────────────────────
+    {
+        "role": "user",
+        "content": json.dumps({
+            "vehicles": [
+                {"vehicle_id": "V5001", "lane": 1, "speed": 50, "distance_to_intersection": 100,
+                 "direction": "north", "destination": "F"},
+                {"vehicle_id": "V5002", "lane": 2, "speed": 45, "distance_to_intersection": 120,
+                 "direction": "north", "destination": "E"},
+            ]
+        })
+    },
+    {
+        "role": "assistant",
+        "content": json.dumps({
+            "is_conflict": "no",
+            "number_of_conflicts": 0,
+            "conflict_vehicles": [],
+            "decisions": [],
+            "priority_order": {"V5001": 1, "V5002": 2},
+            "waiting_times": {"V5001": 0, "V5002": 0}
         })
     },
 ]
