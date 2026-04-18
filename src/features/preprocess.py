@@ -6,14 +6,12 @@ Produces clean features ready for both the feature store and model training.
 """
 
 import ast
-import json
-import numpy as np
-import pandas as pd
 from pathlib import Path
+
+import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler, LabelEncoder
-
+from sklearn.preprocessing import StandardScaler
 
 # ─── Custom transformers ──────────────────────────────────────────────────────
 

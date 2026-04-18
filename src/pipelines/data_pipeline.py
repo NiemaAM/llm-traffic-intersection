@@ -6,10 +6,9 @@ Milestone 3: Full data pipeline with Great Expectations + DVC + Feast.
 """
 
 from pathlib import Path
-from typing import Tuple, Annotated
+from typing import Annotated
 
 import pandas as pd
-
 from zenml import pipeline, step
 from zenml.logger import get_logger
 
@@ -38,7 +37,7 @@ def ingest_data(
     # Import generator from src
     import sys
     sys.path.insert(0, str(Path(__file__).parent.parent))
-    from data.generate_data import generate_dataset, _save_layout
+    from data.generate_data import _save_layout, generate_dataset
 
     _save_layout()
     df = generate_dataset(num_records)
@@ -83,9 +82,10 @@ def engineer_features(
     """
     import sys
     sys.path.insert(0, str(Path(__file__).parent.parent))
-    from features.preprocess import build_feature_pipeline, NUMERIC_FEATURES
-    from sklearn.preprocessing import StandardScaler
     import joblib
+    from sklearn.preprocessing import StandardScaler
+
+    from features.preprocess import NUMERIC_FEATURES, build_feature_pipeline
 
     pipeline = build_feature_pipeline()
     df_feat = pipeline.fit_transform(df)

@@ -18,8 +18,6 @@ from __future__ import annotations
 import json
 import os
 import random
-import sys
-from pathlib import Path
 
 import pandas as pd
 import requests
@@ -140,7 +138,7 @@ with st.sidebar:
         r = requests.get(f"{api_url}/health", timeout=3)
         if r.status_code == 200:
             info = r.json()
-            st.success(f"✅ Connected")
+            st.success("✅ Connected")
             st.caption(f"Model: `{info.get('model', 'unknown')}`")
             st.caption(f"Few-shot: `{info.get('few_shot', '?')}`")
         else:

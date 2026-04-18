@@ -3,15 +3,15 @@ test_data.py
 Unit tests for data generation and validation.
 """
 
-import pytest
-import pandas as pd
 import sys
 from pathlib import Path
 
+import pandas as pd
+
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from src.data.generate_data import generate_scenario, generate_dataset, INTERSECTION_LAYOUT
-from src.data.validate_data import validate_schema, REQUIRED_COLUMNS
+from src.data.generate_data import INTERSECTION_LAYOUT, generate_dataset, generate_scenario
+from src.data.validate_data import REQUIRED_COLUMNS, validate_schema
 
 
 class TestDataGeneration:

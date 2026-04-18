@@ -3,23 +3,24 @@ test_features.py
 Unit tests for feature engineering pipeline.
 """
 
-import pytest
-import pandas as pd
 import sys
 from pathlib import Path
+
+import pandas as pd
+import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from src.data.generate_data import generate_dataset
 from src.features.preprocess import (
-    build_feature_pipeline,
-    DirectionEncoder,
-    ConflictFlagEncoder,
-    WaitingTimeExtractor,
-    PriorityExtractor,
-    ScenarioAggFeatures,
     NUMERIC_FEATURES,
     TARGET_COLUMN,
+    ConflictFlagEncoder,
+    DirectionEncoder,
+    PriorityExtractor,
+    ScenarioAggFeatures,
+    WaitingTimeExtractor,
+    build_feature_pipeline,
 )
 
 

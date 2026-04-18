@@ -36,8 +36,8 @@ def load_production_data(
     Simulates production data from logged predictions.
     Falls back to a synthetic sample if logs are absent.
     """
-    from pathlib import Path
     import json
+    from pathlib import Path
 
     log_file = Path(log_path)
     if log_file.exists():
@@ -100,8 +100,8 @@ def evaluate_on_test_set(
     """Evaluate model on a held-out test set (unseen data)."""
     import sys
     sys.path.insert(0, str(Path(__file__).parent.parent))
-    from models.llm_model import IntersectionLLM
     from evaluation.evaluate import evaluate_model
+    from models.llm_model import IntersectionLLM
 
     llm = IntersectionLLM(model=model_name, few_shot=True)
     try:
@@ -121,8 +121,8 @@ def run_robustness_tests(
     """Run adversarial and behavioral robustness tests."""
     import sys
     sys.path.insert(0, str(Path(__file__).parent.parent))
-    from models.llm_model import IntersectionLLM
     from evaluation.evaluate import RobustnessTests
+    from models.llm_model import IntersectionLLM
 
     llm = IntersectionLLM(model=model_name, few_shot=True)
     try:
@@ -144,8 +144,8 @@ def audit_model_bias(
     """Audit model for bias across vehicle direction groups."""
     import sys
     sys.path.insert(0, str(Path(__file__).parent.parent))
-    from models.llm_model import IntersectionLLM
     from evaluation.evaluate import audit_bias
+    from models.llm_model import IntersectionLLM
 
     llm = IntersectionLLM(model=model_name, few_shot=True)
     try:
@@ -173,7 +173,6 @@ def continual_learning_decision(
     """
     import sys
     sys.path.insert(0, str(Path(__file__).parent.parent))
-    from monitoring.monitor import ContinualLearningTrigger
 
     f1 = test_metrics.get("f1", 1.0)
     drift = drift_report.get("drift_detected", False)

@@ -5,22 +5,19 @@ FastAPI service for LLM-based intersection conflict resolution.
 Milestone 5: Production model serving with on-demand inference.
 """
 
-import json
 import os
+import sys
 import time
+from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-import sys
-from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from models.llm_model import IntersectionLLM
-
 
 # ─── App setup ────────────────────────────────────────────────────────────────
 

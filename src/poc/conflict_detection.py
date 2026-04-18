@@ -21,8 +21,6 @@ import json
 import math
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
-
 
 # ─── Intersection layout ─────────────────────────────────────────────────────
 
@@ -85,7 +83,7 @@ class ConflictPair:
 class IntersectionDecision:
     is_conflict: bool
     conflict_pairs: list[ConflictPair] = field(default_factory=list)
-    priority_order: dict[str, Optional[int]] = field(default_factory=dict)
+    priority_order: dict[str, int | None] = field(default_factory=dict)
     waiting_times: dict[str, int] = field(default_factory=dict)
     decisions: list[str] = field(default_factory=list)
 
@@ -191,7 +189,7 @@ def assign_priorities(
         (lower rank number = higher priority).
       - Non-conflicting vehicles are ranked after conflicting winners.
     """
-    priority: dict[str, Optional[int]] = {v.vehicle_id: None for v in vehicles}
+    priority: dict[str, int | None] = {v.vehicle_id: None for v in vehicles}
     waiting: dict[str, int] = {v.vehicle_id: 0 for v in vehicles}
     decisions: list[str] = []
     yielding_ids: set[str] = set()

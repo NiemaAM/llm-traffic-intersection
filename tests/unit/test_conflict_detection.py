@@ -3,20 +3,20 @@ test_conflict_detection.py
 Unit tests for the rule-based conflict detection engine (Milestone 2).
 """
 
-import pytest
 import sys
 from pathlib import Path
+
+import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from src.poc.conflict_detection import (
-    Vehicle,
-    ConflictPair,
-    detect_conflicts,
-    assign_priorities,
-    analyze_intersection,
-    parse_vehicles,
     NEAR_INTERSECTION_THRESHOLD,
+    Vehicle,
+    analyze_intersection,
+    assign_priorities,
+    detect_conflicts,
+    parse_vehicles,
 )
 
 LAYOUT = {

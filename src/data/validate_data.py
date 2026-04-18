@@ -5,10 +5,10 @@ Data validation and schema verification using Great Expectations.
 Validates raw ingested data before it enters the ML pipeline.
 """
 
-import json
-import pandas as pd
 from pathlib import Path
 from typing import Any
+
+import pandas as pd
 
 try:
     import great_expectations as gx

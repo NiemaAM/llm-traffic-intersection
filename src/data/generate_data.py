@@ -5,13 +5,13 @@ Synthetic intersection scenario generator.
 Produces vehicle-level records with annotated conflict labels and decisions.
 """
 
+import argparse
 import json
 import random
 import string
-import argparse
-import pandas as pd
 from pathlib import Path
 
+import pandas as pd
 
 # ─── Intersection layout ────────────────────────────────────────────────────
 

@@ -6,14 +6,11 @@ Milestone 6: Uses Evidently for drift, Prometheus for metrics, WhyLogs for loggi
 """
 
 import json
-import os
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 import pandas as pd
-
 
 # ─── Evidently drift monitoring ───────────────────────────────────────────────
 
@@ -27,8 +24,8 @@ def compute_data_drift(
     Falls back to a simple statistical drift check if Evidently is unavailable.
     """
     try:
-        from evidently.report import Report
         from evidently.metric_preset import DataDriftPreset, DataQualityPreset
+        from evidently.report import Report
 
         report = Report(metrics=[DataDriftPreset(), DataQualityPreset()])
         report.run(reference_data=reference_df, current_data=production_df)
@@ -116,7 +113,7 @@ def _fallback_log(scenario: dict, prediction: dict, log_dir: str) -> None:
 
 _prometheus_available = False
 try:
-    from prometheus_client import Counter, Histogram, Gauge, start_http_server
+    from prometheus_client import Counter, Gauge, Histogram, start_http_server
     _prometheus_available = True
 
     PREDICTION_COUNTER = Counter(

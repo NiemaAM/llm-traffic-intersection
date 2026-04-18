@@ -5,14 +5,10 @@ Comprehensive model evaluation: accuracy, robustness, bias auditing.
 Milestone 6: Testing beyond accuracy with adversarial and behavioral tests.
 """
 
-import json
 import random
-from pathlib import Path
 from typing import Any
 
-import numpy as np
 import pandas as pd
-
 
 # ─── Standard evaluation ──────────────────────────────────────────────────────
 
@@ -23,8 +19,11 @@ def evaluate_model(
 ) -> dict[str, float]:
     """Standard accuracy evaluation on a held-out test set."""
     from sklearn.metrics import (
-        accuracy_score, precision_score, recall_score,
-        f1_score, confusion_matrix,
+        accuracy_score,
+        confusion_matrix,
+        f1_score,
+        precision_score,
+        recall_score,
     )
 
     df = pd.read_csv(raw_csv)
@@ -186,7 +185,7 @@ def audit_bias(
                 pass
 
         if y_true:
-            from sklearn.metrics import f1_score, accuracy_score
+            from sklearn.metrics import accuracy_score, f1_score
             group_metrics[str(group_val)] = {
                 "n": len(y_true),
                 "accuracy": accuracy_score(y_true, y_pred),

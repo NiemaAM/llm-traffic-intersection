@@ -9,10 +9,8 @@ Inspired by the PseudoCodeRAG-Translator pattern of structured prompt training.
 import json
 import os
 from pathlib import Path
-from typing import Any
 
 import pandas as pd
-
 
 # ─── Prompt templates ─────────────────────────────────────────────────────────
 

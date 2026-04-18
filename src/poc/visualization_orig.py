@@ -41,7 +41,7 @@ Coordinate system
 from __future__ import annotations
 
 import math
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import plotly.graph_objects as go
 import streamlit as st
@@ -66,14 +66,14 @@ ROAD_LEN = 12.0         # length of each arm outside the box
 #   Lanes 2,4,6,8 (left  lane of the arm) → -LANE_W/2
 # ---------------------------------------------------------------------------
 
-_ARMS: Dict[str, Dict] = {
+_ARMS: dict[str, dict] = {
     "north": dict(ox=0.0,      oy= BOX_HALF,  indx= 0.0, indy=-1.0, px=-1.0, py= 0.0),
     "south": dict(ox=0.0,      oy=-BOX_HALF,  indx= 0.0, indy= 1.0, px= 1.0, py= 0.0),
     "east":  dict(ox= BOX_HALF, oy=0.0,        indx=-1.0, indy= 0.0, px= 0.0, py=-1.0),
     "west":  dict(ox=-BOX_HALF, oy=0.0,        indx= 1.0, indy= 0.0, px= 0.0, py= 1.0),
 }
 
-_LANE_PERP_OFFSET: Dict[str, float] = {
+_LANE_PERP_OFFSET: dict[str, float] = {
     "1": +LANE_W / 2, "2": -LANE_W / 2,
     "3": +LANE_W / 2, "4": -LANE_W / 2,
     "5": +LANE_W / 2, "6": -LANE_W / 2,
@@ -86,7 +86,7 @@ _LANE_PERP_OFFSET: Dict[str, float] = {
 #   south exits (C,D) → y-
 #   west  exits (E,F) → x-
 _EXIT_HALF = ROAD_LEN * 0.65
-_DEST_POS: Dict[str, Tuple[float, float]] = {
+_DEST_POS: dict[str, tuple[float, float]] = {
     "A": (-LANE_W / 2,  BOX_HALF + _EXIT_HALF),  # north, left lane
     "H": ( LANE_W / 2,  BOX_HALF + _EXIT_HALF),  # north, right lane
     "B": ( BOX_HALF + _EXIT_HALF,  LANE_W / 2),  # east,  right lane
@@ -98,7 +98,7 @@ _DEST_POS: Dict[str, Tuple[float, float]] = {
 }
 
 # Plotly arrow angle (degrees, 0=up/north, clockwise) for approach direction
-_APPROACH_ANGLE: Dict[str, float] = {
+_APPROACH_ANGLE: dict[str, float] = {
     "north": 180.0,  # arrow points south (toward box)
     "south":   0.0,  # arrow points north (toward box)
     "east":  270.0,  # vehicle travels west  → arrow points left  (270)
@@ -115,26 +115,26 @@ _COLORS = [
 # Position helpers
 # ---------------------------------------------------------------------------
 
-def _stop_line_pos(vehicle: Any) -> Tuple[float, float]:
+def _stop_line_pos(vehicle: Any) -> tuple[float, float]:
     arm = _ARMS[str(vehicle.direction).lower()]
     off = _LANE_PERP_OFFSET[str(vehicle.lane)]
     return (arm["ox"] + arm["px"] * off,
             arm["oy"] + arm["py"] * off)
 
 
-def _start_pos(vehicle: Any) -> Tuple[float, float]:
+def _start_pos(vehicle: Any) -> tuple[float, float]:
     arm = _ARMS[str(vehicle.direction).lower()]
     off = _LANE_PERP_OFFSET[str(vehicle.lane)]
     return (arm["ox"] + arm["px"] * off - arm["indx"] * ROAD_LEN,
             arm["oy"] + arm["py"] * off - arm["indy"] * ROAD_LEN)
 
 
-def _exit_pos(vehicle: Any) -> Tuple[float, float]:
+def _exit_pos(vehicle: Any) -> tuple[float, float]:
     dest = str(vehicle.destination).upper()
     return _DEST_POS.get(dest, (0.0, BOX_HALF + _EXIT_HALF))
 
 
-def _lerp(a: Tuple[float, float], b: Tuple[float, float], t: float) -> Tuple[float, float]:
+def _lerp(a: tuple[float, float], b: tuple[float, float], t: float) -> tuple[float, float]:
     t = max(0.0, min(1.0, t))
     return a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t
 
@@ -153,7 +153,7 @@ def _vehicle_pos_at_t(
     t: float,
     approach_end: float,
     wait_end: float,
-) -> Tuple[Tuple[float, float], str]:
+) -> tuple[tuple[float, float], str]:
     """Return ((x,y), phase) at normalised time t ∈ [0,1].
 
     Timeline fractions are pre-computed by _build_figure from real physics:
@@ -194,8 +194,8 @@ def _vehicle_pos_at_t(
 # Road background traces
 # ---------------------------------------------------------------------------
 
-def _road_bg_traces() -> List[go.BaseTraceType]:
-    traces: List[go.BaseTraceType] = []
+def _road_bg_traces() -> list[go.BaseTraceType]:
+    traces: list[go.BaseTraceType] = []
     road_col = "#3d3d3d"
     edge_col = "#666666"
 
@@ -357,12 +357,12 @@ def _road_bg_traces() -> List[go.BaseTraceType]:
 # ---------------------------------------------------------------------------
 
 def _build_figure(
-    vehicles: List[Any],
+    vehicles: list[Any],
     steps: int,
     interval: int,
     title: str,
-    waiting_times: Dict[str, float],
-    highlight_conflicts: Optional[List[Dict]] = None,
+    waiting_times: dict[str, float],
+    highlight_conflicts: list[dict] | None = None,
 ) -> go.Figure:
     road_bg = _road_bg_traces()
 
@@ -400,8 +400,8 @@ def _build_figure(
     ) if vehicles else 1.0
 
     # Per-vehicle normalised fractions
-    veh_approach_end: Dict[str, float] = {}
-    veh_wait_end:     Dict[str, float] = {}
+    veh_approach_end: dict[str, float] = {}
+    veh_wait_end:     dict[str, float] = {}
 
     for v in vehicles:
         vid  = str(v.vehicle_id)
@@ -420,7 +420,7 @@ def _build_figure(
         veh_wait_end[vid]     = we
 
     # Conflict overlay traces (problem view only)
-    conflict_overlay: List[go.BaseTraceType] = []
+    conflict_overlay: list[go.BaseTraceType] = []
     if highlight_conflicts:
         vid_map = {str(v.vehicle_id): v for v in vehicles}
         for c in highlight_conflicts:
@@ -442,7 +442,7 @@ def _build_figure(
                 ),
             ))
 
-    def _v_traces(t_norm: float) -> List[go.BaseTraceType]:
+    def _v_traces(t_norm: float) -> list[go.BaseTraceType]:
         traces = []
         for idx, v in enumerate(vehicles):
             colour = _COLORS[idx % len(_COLORS)]
@@ -569,7 +569,7 @@ def _build_figure(
 
 def visualize_intersection(
     layout: Any,
-    vehicles: List[Any],
+    vehicles: list[Any],
     steps: int = 40,
     interval: int = 80,
 ) -> None:
@@ -616,8 +616,8 @@ def visualize_intersection(
 
 def visualize_solution(
     layout: Any,
-    vehicles: List[Any],
-    conflicts: List[Dict],
+    vehicles: list[Any],
+    conflicts: list[dict],
     steps: int = 50,
     interval: int = 80,
 ) -> None:
@@ -641,7 +641,7 @@ def visualize_solution(
         return
 
     # Aggregate waiting times across all conflicts (take max per vehicle)
-    waiting_times: Dict[str, float] = {}
+    waiting_times: dict[str, float] = {}
     if conflicts:
         for c in conflicts:
             for vid, wt in c.get("waiting_times", {}).items():

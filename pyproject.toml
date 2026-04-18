@@ -10,10 +10,20 @@ requires-python = ">=3.11"
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
-select = ["E", "F", "W", "I", "N", "UP"]
-ignore = ["E501"]
-exclude = ["notebooks/", ".venv/", "build/"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+ignore = [
+    "E741",   # ambiguous variable name 'l' (used in lane list comprehensions)
+    "E701",   # multiple statements on one line (intentional for compact test code)
+    "N803",   # argument name 'X' should be lowercase (sklearn convention)
+    "N806",   # variable in function should be lowercase (constants in visualization)
+    "F401",   # unused import (conditional imports in try/except blocks)
+    "F841",   # local variable assigned but never used
+    "UP006",  # use dict/list instead of Dict/List (from original files)
+    "UP035",  # deprecated typing imports (from original files)
+    "UP045",  # use X | None instead of Optional (from original files)
+]
 
 [tool.black]
 line-length = 100

@@ -6,16 +6,14 @@ Runs prompt-based fine-tuning (OpenAI) or evaluates zero/few-shot performance.
 Tracks all experiments with MLflow.
 """
 
-import json
 import os
 import time
 from pathlib import Path
 from typing import Any
 
-import pandas as pd
 import mlflow
 import mlflow.pyfunc
-
+import pandas as pd
 
 MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "mlruns")
 EXPERIMENT_NAME     = "traffic-intersection-llm"
@@ -37,9 +35,7 @@ def setup_mlflow(experiment_name: str = EXPERIMENT_NAME) -> str:
 # ─── Evaluation helpers ───────────────────────────────────────────────────────
 
 def compute_metrics(y_true: list, y_pred: list) -> dict[str, float]:
-    from sklearn.metrics import (
-        accuracy_score, precision_score, recall_score, f1_score
-    )
+    from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
     return {
         "accuracy":  accuracy_score(y_true, y_pred),
         "precision": precision_score(y_true, y_pred, zero_division=0),

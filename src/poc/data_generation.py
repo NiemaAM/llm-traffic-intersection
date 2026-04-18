@@ -11,14 +11,17 @@ Date: YYYY-MM-DD
 """
 
 import json
-import pandas as pd
-import random
 import math
+import random
+
+import pandas as pd
+
 from .conflict_detection import (
-    parse_vehicles,
     detect_conflicts,
     parse_intersection_layout,
+    parse_vehicles,
 )
+
 
 def generate_vehicle_scenario(num_vehicles, intersection_layout, fixed_vehicle_count=True):
     """
@@ -118,7 +121,7 @@ def generate_dataset(total_records=50000, num_vehicles=5, fixed_vehicle_count=Tr
         scenario = generate_vehicle_scenario(num_vehicles, intersection_layout, fixed_vehicle_count)
         try:
             vehicles = parse_vehicles(scenario, intersection_layout)
-        except ValueError as e:
+        except ValueError:
             continue  # Skip scenarios with invalid data
 
         conflicts = detect_conflicts(vehicles)
