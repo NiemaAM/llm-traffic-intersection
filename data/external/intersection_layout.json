@@ -1,0 +1,53 @@
+{
+  "incoming_directions": [
+    "north",
+    "south",
+    "east",
+    "west"
+  ],
+  "lanes_per_direction": 2,
+  "destinations": {
+    "north": [
+      "A",
+      "B"
+    ],
+    "south": [
+      "C",
+      "D"
+    ],
+    "east": [
+      "E",
+      "F"
+    ],
+    "west": [
+      "G",
+      "H"
+    ]
+  },
+  "conflict_pairs": [
+    [
+      "north",
+      "south"
+    ],
+    [
+      "east",
+      "west"
+    ],
+    [
+      "north",
+      "east"
+    ],
+    [
+      "south",
+      "west"
+    ],
+    [
+      "north",
+      "west"
+    ],
+    [
+      "south",
+      "east"
+    ]
+  ]
+}

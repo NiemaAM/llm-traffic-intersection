@@ -1,0 +1,104 @@
+services:
+
+  # ── FastAPI inference service ─────────────────────────────────────────────
+  api:
+    build:
+      context: ../..
+      dockerfile: deployment/docker/Dockerfile
+    image: traffic-intersection-api:latest
+    container_name: traffic_api
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - MODEL_NAME=${MODEL_NAME:-gpt-4o-mini}
+      - FEW_SHOT=${FEW_SHOT:-true}
+      - FINE_TUNED_MODEL_ID=${FINE_TUNED_MODEL_ID:-}
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+    volumes:
+      - ./../../data:/app/data
+      - ./../../models:/app/models
+      - ./../../reports:/app/reports
+    depends_on:
+      - mlflow
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - traffic_net
+
+  # ── Streamlit frontend ────────────────────────────────────────────────────
+  streamlit:
+    image: python:3.11-slim
+    container_name: traffic_streamlit
+    working_dir: /app
+    command: >
+      sh -c "pip install streamlit requests pandas plotly python-dotenv --quiet &&
+             streamlit run src/api/streamlit_app.py --server.port 8501 --server.address 0.0.0.0"
+    ports:
+      - "8501:8501"
+    environment:
+      - API_URL=http://api:8000
+    volumes:
+      - ./../../src:/app/src
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks:
+      - traffic_net
+
+  # ── MLflow tracking server ────────────────────────────────────────────────
+  mlflow:
+    image: python:3.11-slim
+    container_name: traffic_mlflow
+    command: >
+      sh -c "pip install mlflow --quiet &&
+             mlflow server --host 0.0.0.0 --port 5000
+             --backend-store-uri /mlruns
+             --default-artifact-root /mlruns/artifacts"
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflow_data:/mlruns
+    restart: unless-stopped
+    networks:
+      - traffic_net
+
+  # ── Prometheus metrics ────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: traffic_prometheus
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    restart: unless-stopped
+    networks:
+      - traffic_net
+
+  # ── Grafana dashboards ────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:latest
+    container_name: traffic_grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - traffic_net
+
+volumes:
+  mlflow_data:
+  grafana_data:
+
+networks:
+  traffic_net:
+    driver: bridge
