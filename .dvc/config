@@ -1,8 +1,0 @@
-# DVC configuration
-# Run `dvc init` then `dvc remote add` to configure your remote storage
-
-[core]
-    autostage = true
-
-[feature]
-    machine = false
