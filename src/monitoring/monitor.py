@@ -14,6 +14,7 @@ import pandas as pd
 
 # ─── Evidently drift monitoring ───────────────────────────────────────────────
 
+
 def compute_data_drift(
     reference_df: pd.DataFrame,
     production_df: pd.DataFrame,
@@ -71,6 +72,7 @@ def _simple_drift_check(
 
 # ─── WhyLogs data logging ─────────────────────────────────────────────────────
 
+
 def log_prediction(
     scenario: dict,
     prediction: dict,
@@ -114,6 +116,7 @@ def _fallback_log(scenario: dict, prediction: dict, log_dir: str) -> None:
 _prometheus_available = False
 try:
     from prometheus_client import Counter, Gauge, Histogram, start_http_server
+
     _prometheus_available = True
 
     PREDICTION_COUNTER = Counter(
@@ -160,6 +163,7 @@ def start_metrics_server(port: int = 9090) -> None:
 
 # ─── A/B testing ──────────────────────────────────────────────────────────────
 
+
 class ABTestRouter:
     """
     Simple A/B test router that splits traffic between two model variants.
@@ -180,6 +184,7 @@ class ABTestRouter:
     def route(self, request_id: str) -> str:
         """Returns 'A' or 'B' deterministically based on request_id."""
         import hashlib
+
         h = int(hashlib.md5(request_id.encode()).hexdigest(), 16)
         return "A" if (h % 100) < (self.traffic_split * 100) else "B"
 
@@ -195,7 +200,9 @@ class ABTestRouter:
             self._results_b.append(int(correct))
 
     def summary(self) -> dict:
-        def acc(lst): return sum(lst) / len(lst) if lst else 0
+        def acc(lst):
+            return sum(lst) / len(lst) if lst else 0
+
         return {
             "model_a": {"n": len(self._results_a), "accuracy": acc(self._results_a)},
             "model_b": {"n": len(self._results_b), "accuracy": acc(self._results_b)},
@@ -203,6 +210,7 @@ class ABTestRouter:
 
 
 # ─── Continual learning trigger ───────────────────────────────────────────────
+
 
 class ContinualLearningTrigger:
     """
@@ -234,6 +242,7 @@ class ContinualLearningTrigger:
         y_pred = [x[1] for x in self._recent_preds]
 
         from sklearn.metrics import f1_score
+
         f1 = f1_score(y_true, y_pred, zero_division=0)
 
         if f1 < self.f1_threshold:

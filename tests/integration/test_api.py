@@ -35,11 +35,13 @@ def client():
 
     with patch("src.api.app.get_llm", return_value=mock_llm):
         from src.api.app import app
+
         with TestClient(app) as c:
             yield c
 
 
 # ─── Health endpoint ──────────────────────────────────────────────────────────
+
 
 class TestHealth:
     def test_health_returns_ok(self, client):
@@ -62,10 +64,22 @@ class TestHealth:
 
 VALID_SCENARIO = {
     "vehicles": [
-        {"vehicle_id": "V1001", "lane": 1, "speed": 60.0,
-         "distance_to_intersection": 50.0, "direction": "north", "destination": "A"},
-        {"vehicle_id": "V1002", "lane": 1, "speed": 55.0,
-         "distance_to_intersection": 45.0, "direction": "south", "destination": "C"},
+        {
+            "vehicle_id": "V1001",
+            "lane": 1,
+            "speed": 60.0,
+            "distance_to_intersection": 50.0,
+            "direction": "north",
+            "destination": "A",
+        },
+        {
+            "vehicle_id": "V1002",
+            "lane": 1,
+            "speed": 55.0,
+            "distance_to_intersection": 45.0,
+            "direction": "south",
+            "destination": "C",
+        },
     ]
 }
 
@@ -116,6 +130,7 @@ class TestPredict:
 
 
 # ─── Batch predict endpoint ───────────────────────────────────────────────────
+
 
 class TestBatchPredict:
     def test_batch_predict_returns_200(self, client):

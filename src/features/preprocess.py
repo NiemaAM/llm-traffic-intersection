@@ -15,8 +15,10 @@ from sklearn.preprocessing import StandardScaler
 
 # ─── Custom transformers ──────────────────────────────────────────────────────
 
+
 class DirectionEncoder(BaseEstimator, TransformerMixin):
     """Encode cardinal directions to integers (N=0, E=1, S=2, W=3)."""
+
     _map = {"north": 0, "east": 1, "south": 2, "west": 3}
 
     def fit(self, X, y=None):
@@ -92,12 +94,16 @@ class ScenarioAggFeatures(BaseEstimator, TransformerMixin):
 
     def transform(self, X):
         df = X.copy()
-        agg = df.groupby("scenario_id").agg(
-            avg_speed_in_scenario=("speed", "mean"),
-            max_speed_in_scenario=("speed", "max"),
-            num_vehicles_in_scenario=("vehicle_id", "count"),
-            avg_distance_in_scenario=("distance_to_intersection", "mean"),
-        ).reset_index()
+        agg = (
+            df.groupby("scenario_id")
+            .agg(
+                avg_speed_in_scenario=("speed", "mean"),
+                max_speed_in_scenario=("speed", "max"),
+                num_vehicles_in_scenario=("vehicle_id", "count"),
+                avg_distance_in_scenario=("distance_to_intersection", "mean"),
+            )
+            .reset_index()
+        )
         df = df.merge(agg, on="scenario_id", how="left")
         return df
 
@@ -107,9 +113,14 @@ class DropRawColumns(BaseEstimator, TransformerMixin):
 
     def __init__(self, cols=None):
         self.cols = cols or [
-            "vehicle_id", "destination", "decisions",
-            "places_of_conflicts", "conflict_vehicles",
-            "priority_order", "waiting_times", "scenario_id",
+            "vehicle_id",
+            "destination",
+            "decisions",
+            "places_of_conflicts",
+            "conflict_vehicles",
+            "priority_order",
+            "waiting_times",
+            "scenario_id",
             "is_conflict",
         ]
 
@@ -122,23 +133,32 @@ class DropRawColumns(BaseEstimator, TransformerMixin):
 
 # ─── Pipeline factory ─────────────────────────────────────────────────────────
 
+
 def build_feature_pipeline() -> Pipeline:
     """Build the full feature engineering pipeline."""
-    return Pipeline([
-        ("direction_enc",     DirectionEncoder()),
-        ("conflict_flag",     ConflictFlagEncoder()),
-        ("waiting_time",      WaitingTimeExtractor()),
-        ("priority",          PriorityExtractor()),
-        ("scenario_agg",      ScenarioAggFeatures()),
-        ("drop_raw",          DropRawColumns()),
-    ])
+    return Pipeline(
+        [
+            ("direction_enc", DirectionEncoder()),
+            ("conflict_flag", ConflictFlagEncoder()),
+            ("waiting_time", WaitingTimeExtractor()),
+            ("priority", PriorityExtractor()),
+            ("scenario_agg", ScenarioAggFeatures()),
+            ("drop_raw", DropRawColumns()),
+        ]
+    )
 
 
 NUMERIC_FEATURES = [
-    "lane", "speed", "distance_to_intersection", "direction_enc",
-    "vehicle_waiting_time", "vehicle_priority",
-    "avg_speed_in_scenario", "max_speed_in_scenario",
-    "num_vehicles_in_scenario", "avg_distance_in_scenario",
+    "lane",
+    "speed",
+    "distance_to_intersection",
+    "direction_enc",
+    "vehicle_waiting_time",
+    "vehicle_priority",
+    "avg_speed_in_scenario",
+    "max_speed_in_scenario",
+    "num_vehicles_in_scenario",
+    "avg_distance_in_scenario",
     "number_of_conflicts",
 ]
 TARGET_COLUMN = "conflict_label"

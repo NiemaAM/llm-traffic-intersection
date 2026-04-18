@@ -17,6 +17,7 @@ logger = get_logger(__name__)
 
 # ─── Steps ───────────────────────────────────────────────────────────────────
 
+
 @step
 def load_reference_data(
     processed_csv: str = "data/processed/features.csv",
@@ -56,8 +57,10 @@ def load_production_data(
     # Fallback: generate a small synthetic sample (simulates production traffic)
     logger.warning("⚠️  No production logs found – using synthetic sample")
     import sys
+
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from data.generate_data import generate_dataset
+
     df = generate_dataset(200)
     logger.info(f"✅ Synthetic production sample: {df.shape}")
     return df
@@ -70,10 +73,11 @@ def detect_drift(
 ) -> Annotated[dict, "drift_report"]:
     """Run data drift detection between reference and production data."""
     import sys
+
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from monitoring.monitor import compute_data_drift
 
-    numeric_ref  = reference_data.select_dtypes(include="number")
+    numeric_ref = reference_data.select_dtypes(include="number")
     numeric_prod = production_data.select_dtypes(include="number")
 
     # Align columns
@@ -99,6 +103,7 @@ def evaluate_on_test_set(
 ) -> Annotated[dict, "test_metrics"]:
     """Evaluate model on a held-out test set (unseen data)."""
     import sys
+
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from evaluation.evaluate import evaluate_model
     from models.llm_model import IntersectionLLM
@@ -120,6 +125,7 @@ def run_robustness_tests(
 ) -> Annotated[dict, "robustness_report"]:
     """Run adversarial and behavioral robustness tests."""
     import sys
+
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from evaluation.evaluate import RobustnessTests
     from models.llm_model import IntersectionLLM
@@ -143,6 +149,7 @@ def audit_model_bias(
 ) -> Annotated[dict, "bias_report"]:
     """Audit model for bias across vehicle direction groups."""
     import sys
+
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from evaluation.evaluate import audit_bias
     from models.llm_model import IntersectionLLM
@@ -172,6 +179,7 @@ def continual_learning_decision(
     - Robustness pass rate below 75%
     """
     import sys
+
     sys.path.insert(0, str(Path(__file__).parent.parent))
 
     f1 = test_metrics.get("f1", 1.0)
@@ -215,8 +223,9 @@ def log_monitoring_results(
 
     with mlflow.start_run(run_name="monitoring-run"):
         if test_metrics:
-            mlflow.log_metrics({f"test_{k}": v for k, v in test_metrics.items()
-                                 if isinstance(v, (int, float))})
+            mlflow.log_metrics(
+                {f"test_{k}": v for k, v in test_metrics.items() if isinstance(v, (int, float))}
+            )
         mlflow.log_param("drift_detected", drift_report.get("drift_detected", False))
         mlflow.log_param("should_retrain", should_retrain)
         mlflow.log_param("robustness_pass_rate", robustness_report.get("pass_rate", 0))
@@ -227,6 +236,7 @@ def log_monitoring_results(
 
 # ─── Pipeline ─────────────────────────────────────────────────────────────────
 
+
 @pipeline(name="traffic_monitoring_pipeline", enable_cache=False)
 def monitoring_pipeline(
     model_name: str = "gpt-4o-mini",
@@ -236,13 +246,13 @@ def monitoring_pipeline(
     Full monitoring pipeline:
       load_data → drift → evaluate → robustness → bias → decision → log
     """
-    ref_data   = load_reference_data()
-    prod_data  = load_production_data()
-    drift      = detect_drift(ref_data, prod_data)
-    metrics    = evaluate_on_test_set(model_name=model_name, max_scenarios=max_scenarios)
+    ref_data = load_reference_data()
+    prod_data = load_production_data()
+    drift = detect_drift(ref_data, prod_data)
+    metrics = evaluate_on_test_set(model_name=model_name, max_scenarios=max_scenarios)
     robustness = run_robustness_tests(model_name=model_name)
-    bias       = audit_model_bias(model_name=model_name)
-    retrain    = continual_learning_decision(metrics, drift, robustness)
+    bias = audit_model_bias(model_name=model_name)
+    retrain = continual_learning_decision(metrics, drift, robustness)
     log_monitoring_results(metrics, drift, robustness, bias, retrain)
 
 

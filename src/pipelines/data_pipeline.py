@@ -14,12 +14,13 @@ from zenml.logger import get_logger
 
 logger = get_logger(__name__)
 
-RAW_DATA_PATH      = "data/raw/generated_dataset.csv"
+RAW_DATA_PATH = "data/raw/generated_dataset.csv"
 PROCESSED_DATA_PATH = "data/processed/features.csv"
-SCALER_PATH        = "models/scaler.joblib"
+SCALER_PATH = "models/scaler.joblib"
 
 
 # ─── Steps ───────────────────────────────────────────────────────────────────
+
 
 @step
 def ingest_data(
@@ -32,10 +33,12 @@ def ingest_data(
     In production this step would pull from a data lake / database.
     """
     import random
+
     random.seed(seed)
 
     # Import generator from src
     import sys
+
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from data.generate_data import _save_layout, generate_dataset
 
@@ -59,6 +62,7 @@ def validate_data(
     Raises on validation failure.
     """
     import sys
+
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from data.validate_data import validate_schema
 
@@ -81,6 +85,7 @@ def engineer_features(
     Runs the scikit-learn feature pipeline.
     """
     import sys
+
     sys.path.insert(0, str(Path(__file__).parent.parent))
     import joblib
     from sklearn.preprocessing import StandardScaler
@@ -119,8 +124,7 @@ def version_data(
 
     try:
         result = subprocess.run(
-            ["dvc", "add", PROCESSED_DATA_PATH],
-            capture_output=True, text=True, timeout=30
+            ["dvc", "add", PROCESSED_DATA_PATH], capture_output=True, text=True, timeout=30
         )
         if result.returncode == 0:
             logger.info(f"✅ DVC versioned: {PROCESSED_DATA_PATH}")
@@ -143,6 +147,7 @@ def push_to_feature_store(
     """
     try:
         from feast import FeatureStore
+
         store = FeatureStore(repo_path="data/feature_store")
         store.materialize_incremental(end_date=pd.Timestamp.now(tz="UTC"))
         logger.info("✅ Features materialized to Feast feature store")
@@ -152,14 +157,15 @@ def push_to_feature_store(
 
 # ─── Pipeline ─────────────────────────────────────────────────────────────────
 
+
 @pipeline(name="traffic_data_pipeline", enable_cache=True)
 def data_pipeline(num_records: int = 1000, seed: int = 42):
     """
     Full data pipeline:
       ingest → validate → engineer → version → feature_store
     """
-    raw      = ingest_data(num_records=num_records, seed=seed)
-    valid    = validate_data(df=raw)
+    raw = ingest_data(num_records=num_records, seed=seed)
+    valid = validate_data(df=raw)
     features = engineer_features(df=valid)
     versioned = version_data(df=features)
     push_to_feature_store(df=versioned)

@@ -13,6 +13,7 @@ import pandas as pd
 try:
     import great_expectations as gx
     from great_expectations.core import ExpectationSuite
+
     GX_AVAILABLE = True
 except ImportError:
     GX_AVAILABLE = False
@@ -21,27 +22,31 @@ except ImportError:
 # ─── Schema definition ───────────────────────────────────────────────────────
 
 SCHEMA: dict[str, dict[str, Any]] = {
-    "vehicle_id":                {"dtype": "string",  "nullable": False, "unique": False},
-    "lane":                      {"dtype": "int",     "nullable": False, "min": 1, "max": 10},
-    "speed":                     {"dtype": "float",   "nullable": False, "min": 0.0, "max": 200.0},
-    "distance_to_intersection":  {"dtype": "float",   "nullable": False, "min": 0.0, "max": 2000.0},
-    "direction":                 {"dtype": "string",  "nullable": False,
-                                  "allowed": ["north", "south", "east", "west"]},
-    "destination":               {"dtype": "string",  "nullable": False},
-    "is_conflict":               {"dtype": "string",  "nullable": False, "allowed": ["yes", "no"]},
-    "number_of_conflicts":       {"dtype": "int",     "nullable": False, "min": 0},
-    "places_of_conflicts":       {"dtype": "string",  "nullable": False},
-    "conflict_vehicles":         {"dtype": "string",  "nullable": False},
-    "decisions":                 {"dtype": "string",  "nullable": False},
-    "priority_order":            {"dtype": "string",  "nullable": False},
-    "waiting_times":             {"dtype": "string",  "nullable": False},
-    "scenario_id":               {"dtype": "string",  "nullable": False},
+    "vehicle_id": {"dtype": "string", "nullable": False, "unique": False},
+    "lane": {"dtype": "int", "nullable": False, "min": 1, "max": 10},
+    "speed": {"dtype": "float", "nullable": False, "min": 0.0, "max": 200.0},
+    "distance_to_intersection": {"dtype": "float", "nullable": False, "min": 0.0, "max": 2000.0},
+    "direction": {
+        "dtype": "string",
+        "nullable": False,
+        "allowed": ["north", "south", "east", "west"],
+    },
+    "destination": {"dtype": "string", "nullable": False},
+    "is_conflict": {"dtype": "string", "nullable": False, "allowed": ["yes", "no"]},
+    "number_of_conflicts": {"dtype": "int", "nullable": False, "min": 0},
+    "places_of_conflicts": {"dtype": "string", "nullable": False},
+    "conflict_vehicles": {"dtype": "string", "nullable": False},
+    "decisions": {"dtype": "string", "nullable": False},
+    "priority_order": {"dtype": "string", "nullable": False},
+    "waiting_times": {"dtype": "string", "nullable": False},
+    "scenario_id": {"dtype": "string", "nullable": False},
 }
 
 REQUIRED_COLUMNS = list(SCHEMA.keys())
 
 
 # ─── Pandas-based validation (always available) ──────────────────────────────
+
 
 class ValidationResult:
     def __init__(self):
@@ -130,6 +135,7 @@ def validate_schema(df: pd.DataFrame) -> ValidationResult:
 
 # ─── Great Expectations suite (optional) ─────────────────────────────────────
 
+
 def build_gx_suite(df: pd.DataFrame, suite_name: str = "traffic_data_suite") -> dict:
     """
     Build and run a Great Expectations validation suite.
@@ -148,9 +154,9 @@ def build_gx_suite(df: pd.DataFrame, suite_name: str = "traffic_data_suite") -> 
 
         # Add pandas datasource using the new 1.x API
         data_source = context.data_sources.add_pandas("traffic_ds")
-        data_asset  = data_source.add_dataframe_asset("traffic_asset")
-        batch_def   = data_asset.add_batch_definition_whole_dataframe("batch")
-        batch       = batch_def.get_batch(batch_parameters={"dataframe": df})
+        data_asset = data_source.add_dataframe_asset("traffic_asset")
+        batch_def = data_asset.add_batch_definition_whole_dataframe("batch")
+        batch = batch_def.get_batch(batch_parameters={"dataframe": df})
 
         # Build expectation suite
         suite = context.suites.add(gx.ExpectationSuite(name=suite_name))
@@ -159,15 +165,18 @@ def build_gx_suite(df: pd.DataFrame, suite_name: str = "traffic_data_suite") -> 
             gx.expectations.ExpectColumnValuesToNotBeNull(column="vehicle_id"),
             gx.expectations.ExpectColumnValuesToNotBeNull(column="is_conflict"),
             gx.expectations.ExpectColumnValuesToBeInSet(
-                column="is_conflict", value_set=["yes", "no"]),
+                column="is_conflict", value_set=["yes", "no"]
+            ),
             gx.expectations.ExpectColumnValuesToBeInSet(
-                column="direction", value_set=["north", "south", "east", "west"]),
+                column="direction", value_set=["north", "south", "east", "west"]
+            ),
             gx.expectations.ExpectColumnValuesToBeBetween(
-                column="speed", min_value=0, max_value=200),
+                column="speed", min_value=0, max_value=200
+            ),
             gx.expectations.ExpectColumnValuesToBeBetween(
-                column="distance_to_intersection", min_value=0, max_value=2000),
-            gx.expectations.ExpectColumnValuesToBeBetween(
-                column="lane", min_value=1, max_value=10),
+                column="distance_to_intersection", min_value=0, max_value=2000
+            ),
+            gx.expectations.ExpectColumnValuesToBeBetween(column="lane", min_value=1, max_value=10),
         ]
         for exp in expectations:
             suite.add_expectation(exp)
@@ -209,5 +218,6 @@ def validate_file(csv_path: str | Path) -> ValidationResult:
 
 if __name__ == "__main__":
     import sys
+
     path = sys.argv[1] if len(sys.argv) > 1 else "data/raw/generated_dataset.csv"
     validate_file(path)

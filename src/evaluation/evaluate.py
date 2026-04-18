@@ -12,6 +12,7 @@ import pandas as pd
 
 # ─── Standard evaluation ──────────────────────────────────────────────────────
 
+
 def evaluate_model(
     raw_csv: str,
     model,
@@ -33,10 +34,16 @@ def evaluate_model(
 
     y_true, y_pred = [], []
     for scenario_id, group in scenarios:
-        vehicles = group[[
-            "vehicle_id", "lane", "speed",
-            "distance_to_intersection", "direction", "destination",
-        ]].to_dict(orient="records")
+        vehicles = group[
+            [
+                "vehicle_id",
+                "lane",
+                "speed",
+                "distance_to_intersection",
+                "direction",
+                "destination",
+            ]
+        ].to_dict(orient="records")
         true_label = 1 if group.iloc[0]["is_conflict"] == "yes" else 0
         try:
             result = model.predict({"vehicles": vehicles})
@@ -50,18 +57,22 @@ def evaluate_model(
     tn, fp, fn, tp = cm.ravel() if cm.size == 4 else (0, 0, 0, 0)
 
     return {
-        "accuracy":  accuracy_score(y_true, y_pred),
+        "accuracy": accuracy_score(y_true, y_pred),
         "precision": precision_score(y_true, y_pred, zero_division=0),
-        "recall":    recall_score(y_true, y_pred, zero_division=0),
-        "f1":        f1_score(y_true, y_pred, zero_division=0),
-        "fnr":       fn / (fn + tp + 1e-10),
-        "fpr":       fp / (fp + tn + 1e-10),
-        "tn": int(tn), "fp": int(fp), "fn": int(fn), "tp": int(tp),
+        "recall": recall_score(y_true, y_pred, zero_division=0),
+        "f1": f1_score(y_true, y_pred, zero_division=0),
+        "fnr": fn / (fn + tp + 1e-10),
+        "fpr": fp / (fp + tn + 1e-10),
+        "tn": int(tn),
+        "fp": int(fp),
+        "fn": int(fn),
+        "tp": int(tp),
         "n_evaluated": len(y_true),
     }
 
 
 # ─── Robustness / adversarial testing ────────────────────────────────────────
+
 
 class RobustnessTests:
     """
@@ -79,8 +90,22 @@ class RobustnessTests:
     def test_obvious_conflict(self) -> tuple[bool, str]:
         """Two vehicles approaching from N and S at high speed very close to intersection."""
         vehicles = [
-            {"vehicle_id": "ADV001", "lane": 1, "speed": 80, "distance_to_intersection": 30, "direction": "north", "destination": "A"},
-            {"vehicle_id": "ADV002", "lane": 1, "speed": 75, "distance_to_intersection": 35, "direction": "south", "destination": "C"},
+            {
+                "vehicle_id": "ADV001",
+                "lane": 1,
+                "speed": 80,
+                "distance_to_intersection": 30,
+                "direction": "north",
+                "destination": "A",
+            },
+            {
+                "vehicle_id": "ADV002",
+                "lane": 1,
+                "speed": 75,
+                "distance_to_intersection": 35,
+                "direction": "south",
+                "destination": "C",
+            },
         ]
         pred = self._predict_conflict(vehicles)
         passed = pred == "yes"
@@ -89,8 +114,22 @@ class RobustnessTests:
     def test_no_conflict_far(self) -> tuple[bool, str]:
         """Two vehicles far from intersection should not conflict."""
         vehicles = [
-            {"vehicle_id": "ADV003", "lane": 1, "speed": 50, "distance_to_intersection": 500, "direction": "north", "destination": "A"},
-            {"vehicle_id": "ADV004", "lane": 2, "speed": 45, "distance_to_intersection": 600, "direction": "east",  "destination": "E"},
+            {
+                "vehicle_id": "ADV003",
+                "lane": 1,
+                "speed": 50,
+                "distance_to_intersection": 500,
+                "direction": "north",
+                "destination": "A",
+            },
+            {
+                "vehicle_id": "ADV004",
+                "lane": 2,
+                "speed": 45,
+                "distance_to_intersection": 600,
+                "direction": "east",
+                "destination": "E",
+            },
         ]
         pred = self._predict_conflict(vehicles)
         passed = pred == "no"
@@ -99,8 +138,22 @@ class RobustnessTests:
     def test_perturbation_stability(self) -> tuple[bool, str]:
         """Slightly perturbing speed should not flip the conflict prediction."""
         base_vehicles = [
-            {"vehicle_id": "ADV005", "lane": 1, "speed": 60, "distance_to_intersection": 50, "direction": "north", "destination": "A"},
-            {"vehicle_id": "ADV006", "lane": 1, "speed": 55, "distance_to_intersection": 45, "direction": "south", "destination": "C"},
+            {
+                "vehicle_id": "ADV005",
+                "lane": 1,
+                "speed": 60,
+                "distance_to_intersection": 50,
+                "direction": "north",
+                "destination": "A",
+            },
+            {
+                "vehicle_id": "ADV006",
+                "lane": 1,
+                "speed": 55,
+                "distance_to_intersection": 45,
+                "direction": "south",
+                "destination": "C",
+            },
         ]
         pred_base = self._predict_conflict(base_vehicles)
 
@@ -114,8 +167,22 @@ class RobustnessTests:
     def test_priority_consistency(self) -> tuple[bool, str]:
         """Faster vehicle should always get higher priority."""
         vehicles = [
-            {"vehicle_id": "ADV007", "lane": 1, "speed": 80, "distance_to_intersection": 40, "direction": "north", "destination": "A"},
-            {"vehicle_id": "ADV008", "lane": 1, "speed": 30, "distance_to_intersection": 50, "direction": "south", "destination": "C"},
+            {
+                "vehicle_id": "ADV007",
+                "lane": 1,
+                "speed": 80,
+                "distance_to_intersection": 40,
+                "direction": "north",
+                "destination": "A",
+            },
+            {
+                "vehicle_id": "ADV008",
+                "lane": 1,
+                "speed": 30,
+                "distance_to_intersection": 50,
+                "direction": "south",
+                "destination": "C",
+            },
         ]
         result = self.model.predict({"vehicles": vehicles})
         prio = result.get("priority_order", {})
@@ -123,7 +190,10 @@ class RobustnessTests:
             passed = prio["ADV007"] < prio["ADV008"]  # lower rank = higher priority
         else:
             passed = False
-        return passed, f"Priority consistency: V007 prio={prio.get('ADV007')}, V008 prio={prio.get('ADV008')}"
+        return (
+            passed,
+            f"Priority consistency: V007 prio={prio.get('ADV007')}, V008 prio={prio.get('ADV008')}",
+        )
 
     def run_all(self) -> dict[str, Any]:
         tests = [
@@ -151,6 +221,7 @@ class RobustnessTests:
 
 # ─── Bias auditing ────────────────────────────────────────────────────────────
 
+
 def audit_bias(
     raw_csv: str,
     model,
@@ -171,10 +242,16 @@ def audit_bias(
 
         y_true, y_pred = [], []
         for _, g in scenarios:
-            vehicles = g[[
-                "vehicle_id", "lane", "speed",
-                "distance_to_intersection", "direction", "destination",
-            ]].to_dict(orient="records")
+            vehicles = g[
+                [
+                    "vehicle_id",
+                    "lane",
+                    "speed",
+                    "distance_to_intersection",
+                    "direction",
+                    "destination",
+                ]
+            ].to_dict(orient="records")
             true_label = 1 if g.iloc[0]["is_conflict"] == "yes" else 0
             try:
                 result = model.predict({"vehicles": vehicles})
@@ -186,6 +263,7 @@ def audit_bias(
 
         if y_true:
             from sklearn.metrics import accuracy_score, f1_score
+
             group_metrics[str(group_val)] = {
                 "n": len(y_true),
                 "accuracy": accuracy_score(y_true, y_pred),

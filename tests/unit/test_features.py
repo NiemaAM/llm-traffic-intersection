@@ -84,8 +84,12 @@ class TestScenarioAggFeatures:
     def test_agg_columns_created(self, sample_df):
         agg = ScenarioAggFeatures()
         result = agg.fit_transform(sample_df)
-        for col in ["avg_speed_in_scenario", "max_speed_in_scenario",
-                    "num_vehicles_in_scenario", "avg_distance_in_scenario"]:
+        for col in [
+            "avg_speed_in_scenario",
+            "max_speed_in_scenario",
+            "num_vehicles_in_scenario",
+            "avg_distance_in_scenario",
+        ]:
             assert col in result.columns
 
     def test_num_vehicles_positive(self, sample_df):

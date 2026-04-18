@@ -50,9 +50,9 @@ import streamlit as st
 # Geometry constants
 # ---------------------------------------------------------------------------
 
-LANE_W   = 1.5          # width of one lane (world units)
-BOX_HALF = LANE_W       # half-size of central intersection box
-ROAD_LEN = 12.0         # length of each arm outside the box
+LANE_W = 1.5  # width of one lane (world units)
+BOX_HALF = LANE_W  # half-size of central intersection box
+ROAD_LEN = 12.0  # length of each arm outside the box
 
 # ---------------------------------------------------------------------------
 # Arm geometry
@@ -67,17 +67,21 @@ ROAD_LEN = 12.0         # length of each arm outside the box
 # ---------------------------------------------------------------------------
 
 _ARMS: dict[str, dict] = {
-    "north": dict(ox=0.0,      oy= BOX_HALF,  indx= 0.0, indy=-1.0, px=-1.0, py= 0.0),
-    "south": dict(ox=0.0,      oy=-BOX_HALF,  indx= 0.0, indy= 1.0, px= 1.0, py= 0.0),
-    "east":  dict(ox= BOX_HALF, oy=0.0,        indx=-1.0, indy= 0.0, px= 0.0, py=-1.0),
-    "west":  dict(ox=-BOX_HALF, oy=0.0,        indx= 1.0, indy= 0.0, px= 0.0, py= 1.0),
+    "north": dict(ox=0.0, oy=BOX_HALF, indx=0.0, indy=-1.0, px=-1.0, py=0.0),
+    "south": dict(ox=0.0, oy=-BOX_HALF, indx=0.0, indy=1.0, px=1.0, py=0.0),
+    "east": dict(ox=BOX_HALF, oy=0.0, indx=-1.0, indy=0.0, px=0.0, py=-1.0),
+    "west": dict(ox=-BOX_HALF, oy=0.0, indx=1.0, indy=0.0, px=0.0, py=1.0),
 }
 
 _LANE_PERP_OFFSET: dict[str, float] = {
-    "1": +LANE_W / 2, "2": -LANE_W / 2,
-    "3": +LANE_W / 2, "4": -LANE_W / 2,
-    "5": +LANE_W / 2, "6": -LANE_W / 2,
-    "7": +LANE_W / 2, "8": -LANE_W / 2,
+    "1": +LANE_W / 2,
+    "2": -LANE_W / 2,
+    "3": +LANE_W / 2,
+    "4": -LANE_W / 2,
+    "5": +LANE_W / 2,
+    "6": -LANE_W / 2,
+    "7": +LANE_W / 2,
+    "8": -LANE_W / 2,
 }
 
 # Destination exit positions mapped from layout:
@@ -87,27 +91,33 @@ _LANE_PERP_OFFSET: dict[str, float] = {
 #   west  exits (E,F) → x-
 _EXIT_HALF = ROAD_LEN * 0.65
 _DEST_POS: dict[str, tuple[float, float]] = {
-    "A": (-LANE_W / 2,  BOX_HALF + _EXIT_HALF),  # north, left lane
-    "H": ( LANE_W / 2,  BOX_HALF + _EXIT_HALF),  # north, right lane
-    "B": ( BOX_HALF + _EXIT_HALF,  LANE_W / 2),  # east,  right lane
-    "G": ( BOX_HALF + _EXIT_HALF, -LANE_W / 2),  # east,  left lane
-    "C": ( LANE_W / 2, -BOX_HALF - _EXIT_HALF),  # south, right lane
+    "A": (-LANE_W / 2, BOX_HALF + _EXIT_HALF),  # north, left lane
+    "H": (LANE_W / 2, BOX_HALF + _EXIT_HALF),  # north, right lane
+    "B": (BOX_HALF + _EXIT_HALF, LANE_W / 2),  # east,  right lane
+    "G": (BOX_HALF + _EXIT_HALF, -LANE_W / 2),  # east,  left lane
+    "C": (LANE_W / 2, -BOX_HALF - _EXIT_HALF),  # south, right lane
     "D": (-LANE_W / 2, -BOX_HALF - _EXIT_HALF),  # south, left lane
-    "E": (-BOX_HALF - _EXIT_HALF,  LANE_W / 2),  # west,  right lane
+    "E": (-BOX_HALF - _EXIT_HALF, LANE_W / 2),  # west,  right lane
     "F": (-BOX_HALF - _EXIT_HALF, -LANE_W / 2),  # west,  left lane
 }
 
 # Plotly arrow angle (degrees, 0=up/north, clockwise) for approach direction
 _APPROACH_ANGLE: dict[str, float] = {
     "north": 180.0,  # arrow points south (toward box)
-    "south":   0.0,  # arrow points north (toward box)
-    "east":  270.0,  # vehicle travels west  → arrow points left  (270)
-    "west":   90.0,  # vehicle travels east  → arrow points right (90)
+    "south": 0.0,  # arrow points north (toward box)
+    "east": 270.0,  # vehicle travels west  → arrow points left  (270)
+    "west": 90.0,  # vehicle travels east  → arrow points right (90)
 }
 
 _COLORS = [
-    "#00d4ff", "#ff6b35", "#7bc67e", "#ff4757",
-    "#ffd32a", "#a29bfe", "#fd79a8", "#55efc4",
+    "#00d4ff",
+    "#ff6b35",
+    "#7bc67e",
+    "#ff4757",
+    "#ffd32a",
+    "#a29bfe",
+    "#fd79a8",
+    "#55efc4",
 ]
 
 
@@ -115,18 +125,20 @@ _COLORS = [
 # Position helpers
 # ---------------------------------------------------------------------------
 
+
 def _stop_line_pos(vehicle: Any) -> tuple[float, float]:
     arm = _ARMS[str(vehicle.direction).lower()]
     off = _LANE_PERP_OFFSET[str(vehicle.lane)]
-    return (arm["ox"] + arm["px"] * off,
-            arm["oy"] + arm["py"] * off)
+    return (arm["ox"] + arm["px"] * off, arm["oy"] + arm["py"] * off)
 
 
 def _start_pos(vehicle: Any) -> tuple[float, float]:
     arm = _ARMS[str(vehicle.direction).lower()]
     off = _LANE_PERP_OFFSET[str(vehicle.lane)]
-    return (arm["ox"] + arm["px"] * off - arm["indx"] * ROAD_LEN,
-            arm["oy"] + arm["py"] * off - arm["indy"] * ROAD_LEN)
+    return (
+        arm["ox"] + arm["px"] * off - arm["indx"] * ROAD_LEN,
+        arm["oy"] + arm["py"] * off - arm["indy"] * ROAD_LEN,
+    )
 
 
 def _exit_pos(vehicle: Any) -> tuple[float, float]:
@@ -171,9 +183,9 @@ def _vehicle_pos_at_t(
     cross_dur = max(1.0 - wait_end, 0.02)
 
     start = _start_pos(vehicle)
-    stop  = _stop_line_pos(vehicle)
-    mid   = (0.0, 0.0)
-    dest  = _exit_pos(vehicle)
+    stop = _stop_line_pos(vehicle)
+    mid = (0.0, 0.0)
+    dest = _exit_pos(vehicle)
 
     if t < approach_end:
         sub = t / max(approach_end, 1e-9)
@@ -194,6 +206,7 @@ def _vehicle_pos_at_t(
 # Road background traces
 # ---------------------------------------------------------------------------
 
+
 def _road_bg_traces() -> list[go.BaseTraceType]:
     traces: list[go.BaseTraceType] = []
     road_col = "#3d3d3d"
@@ -201,17 +214,23 @@ def _road_bg_traces() -> list[go.BaseTraceType]:
 
     # Central box
     b = BOX_HALF
-    traces.append(go.Scatter(
-        x=[-b, b, b, -b, -b], y=[-b, -b, b, b, -b],
-        fill="toself", fillcolor=road_col,
-        line=dict(color=edge_col, width=1),
-        mode="lines", showlegend=False, hoverinfo="skip",
-    ))
+    traces.append(
+        go.Scatter(
+            x=[-b, b, b, -b, -b],
+            y=[-b, -b, b, b, -b],
+            fill="toself",
+            fillcolor=road_col,
+            line=dict(color=edge_col, width=1),
+            mode="lines",
+            showlegend=False,
+            hoverinfo="skip",
+        )
+    )
 
     for direction, arm in _ARMS.items():
-        ox, oy     = arm["ox"], arm["oy"]
+        ox, oy = arm["ox"], arm["oy"]
         indx, indy = arm["indx"], arm["indy"]
-        px, py     = arm["px"], arm["py"]
+        px, py = arm["px"], arm["py"]
         hw = LANE_W  # half-width of the whole road
 
         far_x = ox - indx * ROAD_LEN
@@ -219,54 +238,83 @@ def _road_bg_traces() -> list[go.BaseTraceType]:
 
         # Road arm rectangle
         corners = [
-            (ox    + px * hw, oy    + py * hw),
-            (ox    - px * hw, oy    - py * hw),
+            (ox + px * hw, oy + py * hw),
+            (ox - px * hw, oy - py * hw),
             (far_x - px * hw, far_y - py * hw),
             (far_x + px * hw, far_y + py * hw),
         ]
         xs = [c[0] for c in corners] + [corners[0][0]]
         ys = [c[1] for c in corners] + [corners[0][1]]
-        traces.append(go.Scatter(
-            x=xs, y=ys, fill="toself", fillcolor=road_col,
-            line=dict(color=edge_col, width=1),
-            mode="lines", showlegend=False, hoverinfo="skip",
-        ))
+        traces.append(
+            go.Scatter(
+                x=xs,
+                y=ys,
+                fill="toself",
+                fillcolor=road_col,
+                line=dict(color=edge_col, width=1),
+                mode="lines",
+                showlegend=False,
+                hoverinfo="skip",
+            )
+        )
 
         # Centre dashed lane divider
-        traces.append(go.Scatter(
-            x=[ox, far_x], y=[oy, far_y],
-            mode="lines",
-            line=dict(color="white", width=1, dash="dash"),
-            showlegend=False, hoverinfo="skip",
-        ))
+        traces.append(
+            go.Scatter(
+                x=[ox, far_x],
+                y=[oy, far_y],
+                mode="lines",
+                line=dict(color="white", width=1, dash="dash"),
+                showlegend=False,
+                hoverinfo="skip",
+            )
+        )
 
         # Stop-line (thick white bar)
-        traces.append(go.Scatter(
-            x=[ox + px * hw, ox - px * hw],
-            y=[oy + py * hw, oy - py * hw],
-            mode="lines",
-            line=dict(color="white", width=3),
-            showlegend=False, hoverinfo="skip",
-        ))
+        traces.append(
+            go.Scatter(
+                x=[ox + px * hw, ox - px * hw],
+                y=[oy + py * hw, oy - py * hw],
+                mode="lines",
+                line=dict(color="white", width=3),
+                showlegend=False,
+                hoverinfo="skip",
+            )
+        )
 
     # Destination labels
     for dest, (dx, dy) in _DEST_POS.items():
-        traces.append(go.Scatter(
-            x=[dx], y=[dy],
-            mode="text", text=[f"<b>{dest}</b>"],
-            textfont=dict(color="#ffd700", size=14),
-            showlegend=False, hoverinfo="skip",
-        ))
+        traces.append(
+            go.Scatter(
+                x=[dx],
+                y=[dy],
+                mode="text",
+                text=[f"<b>{dest}</b>"],
+                textfont=dict(color="#ffd700", size=14),
+                showlegend=False,
+                hoverinfo="skip",
+            )
+        )
 
     # Compass labels
     label_offset = BOX_HALF + ROAD_LEN + 1.2
-    for lbl, lx, ly in [("N", 0, label_offset), ("S", 0, -label_offset),
-                         ("E", label_offset, 0), ("W", -label_offset, 0)]:
-        traces.append(go.Scatter(
-            x=[lx], y=[ly], mode="text", text=[lbl],
-            textfont=dict(color="#aaaaaa", size=15),
-            showlegend=False, hoverinfo="skip",
-        ))
+    for lbl, lx, ly in [
+        ("N", 0, label_offset),
+        ("S", 0, -label_offset),
+        ("E", label_offset, 0),
+        ("W", -label_offset, 0),
+    ]:
+        traces.append(
+            go.Scatter(
+                x=[lx],
+                y=[ly],
+                mode="text",
+                text=[lbl],
+                textfont=dict(color="#aaaaaa", size=15),
+                showlegend=False,
+                hoverinfo="skip",
+            )
+        )
 
     # -----------------------------------------------------------------------
     # Lane number labels + direction arrows
@@ -286,13 +334,13 @@ def _road_bg_traces() -> list[go.BaseTraceType]:
     _LANE_INFO = [
         # (lane_id, direction, perp_offset, exit_lane)
         ("1", "north", +LANE_W / 2, False),
-        ("2", "north", -LANE_W / 2, True),   # exit lane – away from box
-        ("3", "east",  +LANE_W / 2, False),
-        ("4", "east",  -LANE_W / 2, True),   # exit lane – away from box
+        ("2", "north", -LANE_W / 2, True),  # exit lane – away from box
+        ("3", "east", +LANE_W / 2, False),
+        ("4", "east", -LANE_W / 2, True),  # exit lane – away from box
         ("5", "south", +LANE_W / 2, False),
-        ("6", "south", -LANE_W / 2, True),   # exit lane – away from box
-        ("7", "west",  +LANE_W / 2, False),
-        ("8", "west",  -LANE_W / 2, True),   # exit lane – away from box
+        ("6", "south", -LANE_W / 2, True),  # exit lane – away from box
+        ("7", "west", +LANE_W / 2, False),
+        ("8", "west", -LANE_W / 2, True),  # exit lane – away from box
     ]
 
     # Place label + arrow at 50% along the arm from the stop-line outward
@@ -300,31 +348,34 @@ def _road_bg_traces() -> list[go.BaseTraceType]:
 
     for lane_id, direction, perp_off, exit_lane in _LANE_INFO:
         arm = _ARMS[direction]
-        ox, oy     = arm["ox"], arm["oy"]
+        ox, oy = arm["ox"], arm["oy"]
         indx, indy = arm["indx"], arm["indy"]
-        px, py     = arm["px"], arm["py"]
+        px, py = arm["px"], arm["py"]
 
         # Mid-arm position (outward from stop-line)
         mx = ox + px * perp_off - indx * LABEL_DIST
         my = oy + py * perp_off - indy * LABEL_DIST
 
         # ---- lane number badge ----
-        traces.append(go.Scatter(
-            x=[mx], y=[my],
-            mode="markers+text",
-            marker=dict(
-                size=22,
-                color="rgba(20,20,60,0.82)",
-                symbol="circle",
-                line=dict(color="#88aaff", width=1.5),
-            ),
-            text=[f"<b>{lane_id}</b>"],
-            textposition="middle center",
-            textfont=dict(color="#88aaff", size=11, family="monospace"),
-            showlegend=False,
-            hovertemplate=f"<b>Lane {lane_id}</b><br>Direction: {direction}<br>{'Exit' if exit_lane else 'Entry'} lane<extra></extra>",
-            name="",
-        ))
+        traces.append(
+            go.Scatter(
+                x=[mx],
+                y=[my],
+                mode="markers+text",
+                marker=dict(
+                    size=22,
+                    color="rgba(20,20,60,0.82)",
+                    symbol="circle",
+                    line=dict(color="#88aaff", width=1.5),
+                ),
+                text=[f"<b>{lane_id}</b>"],
+                textposition="middle center",
+                textfont=dict(color="#88aaff", size=11, family="monospace"),
+                showlegend=False,
+                hovertemplate=f"<b>Lane {lane_id}</b><br>Direction: {direction}<br>{'Exit' if exit_lane else 'Entry'} lane<extra></extra>",
+                name="",
+            )
+        )
 
         # ---- direction arrow ----
         # Entry lanes: arrow points toward the box (approach angle)
@@ -334,20 +385,23 @@ def _road_bg_traces() -> list[go.BaseTraceType]:
         ay = oy + py * perp_off - indy * arrow_dist
         arrow_angle = (_APPROACH_ANGLE[direction] + (180.0 if exit_lane else 0.0)) % 360
 
-        traces.append(go.Scatter(
-            x=[ax], y=[ay],
-            mode="markers",
-            marker=dict(
-                size=13,
-                color="#88aaff",
-                symbol="arrow",
-                angle=arrow_angle,
-                opacity=0.75,
-            ),
-            showlegend=False,
-            hoverinfo="skip",
-            name="",
-        ))
+        traces.append(
+            go.Scatter(
+                x=[ax],
+                y=[ay],
+                mode="markers",
+                marker=dict(
+                    size=13,
+                    color="#88aaff",
+                    symbol="arrow",
+                    angle=arrow_angle,
+                    opacity=0.75,
+                ),
+                showlegend=False,
+                hoverinfo="skip",
+                name="",
+            )
+        )
 
     return traces
 
@@ -355,6 +409,7 @@ def _road_bg_traces() -> list[go.BaseTraceType]:
 # ---------------------------------------------------------------------------
 # Build animated figure
 # ---------------------------------------------------------------------------
+
 
 def _build_figure(
     vehicles: list[Any],
@@ -379,7 +434,7 @@ def _build_figure(
     #     wait_end     = (TTA + wait_seconds) / total_sim_time
     # (clamped so crossing always occupies at least MIN_CROSS_FRAC of the timeline)
 
-    CROSS_TIME     = 4.0   # seconds a vehicle takes to traverse the box
+    CROSS_TIME = 4.0  # seconds a vehicle takes to traverse the box
     MIN_CROSS_FRAC = 0.10  # crossing gets at least 10% of the animation
 
     # Gather per-vehicle TTA (guard against inf for stopped vehicles)
@@ -390,22 +445,24 @@ def _build_figure(
             return v.distance_to_intersection / speed_ms if speed_ms > 0 else 9999.0
         return float(tta)
 
-    veh_tta   = {str(v.vehicle_id): _tta(v) for v in vehicles}
-    veh_wait  = {str(v.vehicle_id): float(waiting_times.get(str(v.vehicle_id), 0.0))
-                 for v in vehicles}
+    veh_tta = {str(v.vehicle_id): _tta(v) for v in vehicles}
+    veh_wait = {
+        str(v.vehicle_id): float(waiting_times.get(str(v.vehicle_id), 0.0)) for v in vehicles
+    }
 
-    total_sim_time = max(
-        veh_tta[str(v.vehicle_id)] + veh_wait[str(v.vehicle_id)] + CROSS_TIME
-        for v in vehicles
-    ) if vehicles else 1.0
+    total_sim_time = (
+        max(veh_tta[str(v.vehicle_id)] + veh_wait[str(v.vehicle_id)] + CROSS_TIME for v in vehicles)
+        if vehicles
+        else 1.0
+    )
 
     # Per-vehicle normalised fractions
     veh_approach_end: dict[str, float] = {}
-    veh_wait_end:     dict[str, float] = {}
+    veh_wait_end: dict[str, float] = {}
 
     for v in vehicles:
-        vid  = str(v.vehicle_id)
-        tta  = veh_tta[vid]
+        vid = str(v.vehicle_id)
+        tta = veh_tta[vid]
         wait = veh_wait[vid]
 
         ae = tta / total_sim_time
@@ -414,10 +471,10 @@ def _build_figure(
         # Ensure crossing always has room
         ae = min(ae, 1.0 - MIN_CROSS_FRAC)
         we = min(we, 1.0 - MIN_CROSS_FRAC)
-        we = max(we, ae)   # wait_end >= approach_end
+        we = max(we, ae)  # wait_end >= approach_end
 
         veh_approach_end[vid] = ae
-        veh_wait_end[vid]     = we
+        veh_wait_end[vid] = we
 
     # Conflict overlay traces (problem view only)
     conflict_overlay: list[go.BaseTraceType] = []
@@ -430,51 +487,57 @@ def _build_figure(
                 continue
             sl1 = _stop_line_pos(v1)
             sl2 = _stop_line_pos(v2)
-            conflict_overlay.append(go.Scatter(
-                x=[sl1[0], 0.0, sl2[0]],
-                y=[sl1[1], 0.0, sl2[1]],
-                mode="lines",
-                line=dict(color="#ff4444", width=2, dash="dot"),
-                name=f"⚠ {c['vehicle1_id']} ↔ {c['vehicle2_id']}",
-                hovertemplate=(
-                    f"<b>Conflict</b><br>"
-                    f"{c['decision']}<extra></extra>"
-                ),
-            ))
+            conflict_overlay.append(
+                go.Scatter(
+                    x=[sl1[0], 0.0, sl2[0]],
+                    y=[sl1[1], 0.0, sl2[1]],
+                    mode="lines",
+                    line=dict(color="#ff4444", width=2, dash="dot"),
+                    name=f"⚠ {c['vehicle1_id']} ↔ {c['vehicle2_id']}",
+                    hovertemplate=(f"<b>Conflict</b><br>" f"{c['decision']}<extra></extra>"),
+                )
+            )
 
     def _v_traces(t_norm: float) -> list[go.BaseTraceType]:
         traces = []
         for idx, v in enumerate(vehicles):
             colour = _COLORS[idx % len(_COLORS)]
-            vid    = str(v.vehicle_id)
-            ae     = veh_approach_end[vid]
-            we     = veh_wait_end[vid]
-            wt     = waiting_times.get(vid, 0)
+            vid = str(v.vehicle_id)
+            ae = veh_approach_end[vid]
+            we = veh_wait_end[vid]
+            wt = waiting_times.get(vid, 0)
 
             (x, y), phase = _vehicle_pos_at_t(v, t_norm, ae, we)
-            angle = (_APPROACH_ANGLE[str(v.direction).lower()]
-                     if phase in ("approach", "wait")
-                     else _crossing_angle(v))
-            traces.append(go.Scatter(
-                x=[x], y=[y],
-                mode="markers+text",
-                marker=dict(
-                    size=18, color=colour,
-                    symbol="arrow", angle=angle,
-                    line=dict(width=1, color="white"),
-                ),
-                text=[str(v.vehicle_id)],
-                textposition="top center",
-                textfont=dict(color=colour, size=10, family="monospace"),
-                name=str(v.vehicle_id),
-                hovertemplate=(
-                    f"<b>{v.vehicle_id}</b><br>"
-                    f"Direction: {v.direction} → {v.destination}<br>"
-                    f"Lane: {v.lane} | Speed: {v.speed} km/h<br>"
-                    f"Movement: {v.movement_type}<br>"
-                    f"TTA: {veh_tta[vid]:.1f}s | Wait: {wt}s<extra></extra>"
-                ),
-            ))
+            angle = (
+                _APPROACH_ANGLE[str(v.direction).lower()]
+                if phase in ("approach", "wait")
+                else _crossing_angle(v)
+            )
+            traces.append(
+                go.Scatter(
+                    x=[x],
+                    y=[y],
+                    mode="markers+text",
+                    marker=dict(
+                        size=18,
+                        color=colour,
+                        symbol="arrow",
+                        angle=angle,
+                        line=dict(width=1, color="white"),
+                    ),
+                    text=[str(v.vehicle_id)],
+                    textposition="top center",
+                    textfont=dict(color=colour, size=10, family="monospace"),
+                    name=str(v.vehicle_id),
+                    hovertemplate=(
+                        f"<b>{v.vehicle_id}</b><br>"
+                        f"Direction: {v.direction} → {v.destination}<br>"
+                        f"Lane: {v.lane} | Speed: {v.speed} km/h<br>"
+                        f"Movement: {v.movement_type}<br>"
+                        f"TTA: {veh_tta[vid]:.1f}s | Wait: {wt}s<extra></extra>"
+                    ),
+                )
+            )
         return traces
 
     init_data = road_bg + conflict_overlay + _v_traces(0.0)
@@ -495,12 +558,17 @@ def _build_figure(
             plot_bgcolor="#16213e",
             xaxis=dict(
                 range=[-axis_range, axis_range],
-                scaleanchor="y", scaleratio=1,
-                showgrid=False, zeroline=False, showticklabels=False,
+                scaleanchor="y",
+                scaleratio=1,
+                showgrid=False,
+                zeroline=False,
+                showticklabels=False,
             ),
             yaxis=dict(
                 range=[-axis_range, axis_range],
-                showgrid=False, zeroline=False, showticklabels=False,
+                showgrid=False,
+                zeroline=False,
+                showticklabels=False,
             ),
             legend=dict(
                 font=dict(color="white", size=10),
@@ -508,54 +576,72 @@ def _build_figure(
                 bordercolor="#555555",
                 borderwidth=1,
             ),
-            updatemenus=[dict(
-                type="buttons",
-                showactive=False,
-                y=-0.06, x=0.5, xanchor="center",
-                direction="left",
-                buttons=[
-                    dict(
-                        label="▶  Play",
-                        method="animate",
-                        args=[None, dict(
-                            frame=dict(duration=interval, redraw=True),
-                            fromcurrent=True, mode="immediate",
-                        )],
+            updatemenus=[
+                dict(
+                    type="buttons",
+                    showactive=False,
+                    y=-0.06,
+                    x=0.5,
+                    xanchor="center",
+                    direction="left",
+                    buttons=[
+                        dict(
+                            label="▶  Play",
+                            method="animate",
+                            args=[
+                                None,
+                                dict(
+                                    frame=dict(duration=interval, redraw=True),
+                                    fromcurrent=True,
+                                    mode="immediate",
+                                ),
+                            ],
+                        ),
+                        dict(
+                            label="⏸  Pause",
+                            method="animate",
+                            args=[
+                                [None],
+                                dict(
+                                    frame=dict(duration=0, redraw=False),
+                                    mode="immediate",
+                                ),
+                            ],
+                        ),
+                    ],
+                    font=dict(color="#111111"),
+                    bgcolor="#dddddd",
+                )
+            ],
+            sliders=[
+                dict(
+                    steps=[
+                        dict(
+                            method="animate",
+                            args=[
+                                [str(s)],
+                                dict(
+                                    mode="immediate",
+                                    frame=dict(duration=interval, redraw=True),
+                                    transition=dict(duration=0),
+                                ),
+                            ],
+                            label=str(s),
+                        )
+                        for s in range(steps)
+                    ],
+                    transition=dict(duration=0),
+                    x=0.05,
+                    y=0.0,
+                    len=0.90,
+                    currentvalue=dict(
+                        prefix="Frame: ",
+                        font=dict(color="white", size=11),
+                        visible=True,
                     ),
-                    dict(
-                        label="⏸  Pause",
-                        method="animate",
-                        args=[[None], dict(
-                            frame=dict(duration=0, redraw=False),
-                            mode="immediate",
-                        )],
-                    ),
-                ],
-                font=dict(color="#111111"),
-                bgcolor="#dddddd",
-            )],
-            sliders=[dict(
-                steps=[
-                    dict(
-                        method="animate",
-                        args=[[str(s)], dict(
-                            mode="immediate",
-                            frame=dict(duration=interval, redraw=True),
-                            transition=dict(duration=0),
-                        )],
-                        label=str(s),
-                    )
-                    for s in range(steps)
-                ],
-                transition=dict(duration=0),
-                x=0.05, y=0.0, len=0.90,
-                currentvalue=dict(
-                    prefix="Frame: ",
-                    font=dict(color="white", size=11),
-                    visible=True,
-                ),
-                font=dict(color="white", size=9),
-            )],
+                    font=dict(color="white", size=9),
+                )
+            ],
             height=580,
             margin=dict(l=10, r=10, t=55, b=110),
         ),
@@ -566,6 +652,7 @@ def _build_figure(
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
 
 def visualize_intersection(
     layout: Any,
@@ -592,6 +679,7 @@ def visualize_intersection(
 
     try:
         from conflict_detection_orig import detect_conflicts
+
         conflicts = detect_conflicts(vehicles)
     except Exception:
         conflicts = []
@@ -645,9 +733,7 @@ def visualize_solution(
     if conflicts:
         for c in conflicts:
             for vid, wt in c.get("waiting_times", {}).items():
-                waiting_times[str(vid)] = max(
-                    waiting_times.get(str(vid), 0.0), float(wt)
-                )
+                waiting_times[str(vid)] = max(waiting_times.get(str(vid), 0.0), float(wt))
 
     fig = _build_figure(
         vehicles=vehicles,
@@ -664,7 +750,7 @@ def visualize_solution(
         st.markdown("#### 🕐 Conflict Resolution Summary")
         rows = []
         for c in conflicts:
-            p  = c["priority_order"]
+            p = c["priority_order"]
             wt = c["waiting_times"]
             v1, v2 = str(c["vehicle1_id"]), str(c["vehicle2_id"])
             rows.append(

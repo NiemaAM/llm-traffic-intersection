@@ -21,12 +21,12 @@ INTERSECTION_LAYOUT = {
     "destinations": {
         "north": ["A", "B"],
         "south": ["C", "D"],
-        "east":  ["E", "F"],
-        "west":  ["G", "H"],
+        "east": ["E", "F"],
+        "west": ["G", "H"],
     },
     "conflict_pairs": [
         ("north", "south"),
-        ("east",  "west"),
+        ("east", "west"),
         ("north", "east"),
         ("south", "west"),
         ("north", "west"),
@@ -54,15 +54,18 @@ def _detect_conflicts(vehicles: list[dict]) -> dict:
     directions = {v["vehicle_id"]: v["direction"] for v in vehicles}
     close_threshold = 80  # metres
 
-    pairs = [(v1, v2) for i, v1 in enumerate(vehicles) for v2 in vehicles[i + 1:]]
+    pairs = [(v1, v2) for i, v1 in enumerate(vehicles) for v2 in vehicles[i + 1 :]]
     for v1, v2 in pairs:
         d1, d2 = v1["direction"], v2["direction"]
         near1 = v1["distance_to_intersection"] < close_threshold
         near2 = v2["distance_to_intersection"] < close_threshold
-        if (d1, d2) in [(a, b) for a, b in INTERSECTION_LAYOUT["conflict_pairs"]] or \
-           (d2, d1) in [(a, b) for a, b in INTERSECTION_LAYOUT["conflict_pairs"]]:
+        if (d1, d2) in [(a, b) for a, b in INTERSECTION_LAYOUT["conflict_pairs"]] or (d2, d1) in [
+            (a, b) for a, b in INTERSECTION_LAYOUT["conflict_pairs"]
+        ]:
             if near1 and near2:
-                conflict_pairs.append({"vehicle1_id": v1["vehicle_id"], "vehicle2_id": v2["vehicle_id"]})
+                conflict_pairs.append(
+                    {"vehicle1_id": v1["vehicle_id"], "vehicle2_id": v2["vehicle_id"]}
+                )
                 conflict_places.append("intersection")
 
     is_conflict = len(conflict_pairs) > 0
@@ -122,14 +125,16 @@ def generate_scenario(num_vehicles: int | None = None) -> list[dict]:
         direction = random.choice(layout["incoming_directions"])
         lane = random.randint(1, layout["lanes_per_direction"])
         destination = random.choice(layout["destinations"][direction])
-        vehicles.append({
-            "vehicle_id": _random_vehicle_id(),
-            "lane": lane,
-            "speed": round(random.uniform(10, 90), 2),
-            "distance_to_intersection": round(random.uniform(10, 500), 2),
-            "direction": direction,
-            "destination": destination,
-        })
+        vehicles.append(
+            {
+                "vehicle_id": _random_vehicle_id(),
+                "lane": lane,
+                "speed": round(random.uniform(10, 90), 2),
+                "distance_to_intersection": round(random.uniform(10, 500), 2),
+                "direction": direction,
+                "destination": destination,
+            }
+        )
 
     conflict_meta = _detect_conflicts(vehicles)
     decisions, priorities, waiting = _assign_decisions(vehicles, conflict_meta)
@@ -139,11 +144,14 @@ def generate_scenario(num_vehicles: int | None = None) -> list[dict]:
 
     records = []
     for v in vehicles:
-        record = {**v, **conflict_meta,
-                  "decisions": decisions,
-                  "priority_order": priorities,
-                  "waiting_times": waiting,
-                  "scenario_id": scenario_id}
+        record = {
+            **v,
+            **conflict_meta,
+            "decisions": decisions,
+            "priority_order": priorities,
+            "waiting_times": waiting,
+            "scenario_id": scenario_id,
+        }
         records.append(record)
     return records
 
@@ -160,10 +168,13 @@ def generate_dataset(num_records: int = 1000, num_vehicles: int | None = None) -
 def main():
     parser = argparse.ArgumentParser(description="Generate synthetic intersection dataset")
     parser.add_argument("--num-records", type=int, default=1000)
-    parser.add_argument("--num-vehicles", type=int, default=None,
-                        help="Fixed vehicles per scenario (random 2-8 if omitted)")
-    parser.add_argument("--output", type=str,
-                        default="data/raw/generated_dataset.csv")
+    parser.add_argument(
+        "--num-vehicles",
+        type=int,
+        default=None,
+        help="Fixed vehicles per scenario (random 2-8 if omitted)",
+    )
+    parser.add_argument("--output", type=str, default="data/raw/generated_dataset.csv")
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
 

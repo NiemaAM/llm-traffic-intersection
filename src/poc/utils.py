@@ -57,7 +57,7 @@ def parse_analysis_to_string(row):
         str: Formatted analysis of conflicts and decisions.
     """
     # If no conflict, return "No"
-    if row['is_conflict'] == 'no':
+    if row["is_conflict"] == "no":
         return "No conflict detected."
 
     # Conflict detected
@@ -67,23 +67,22 @@ def parse_analysis_to_string(row):
     conflicts_summary = f"Number of conflicts: {row['number_of_conflicts']}"
 
     # Involved vehicles in conflicts
-    conflict_vehicles = row['conflict_vehicles']
+    conflict_vehicles = row["conflict_vehicles"]
     involved_vehicles = ""
     if conflict_vehicles:
         involved_pairs = [
-            f"Vehicle {v['vehicle1_id']} and Vehicle {v['vehicle2_id']}"
-            for v in conflict_vehicles
+            f"Vehicle {v['vehicle1_id']} and Vehicle {v['vehicle2_id']}" for v in conflict_vehicles
         ]
         involved_vehicles = "Involved vehicles: " + ", ".join(involved_pairs) + "."
     else:
         involved_vehicles = "No vehicles involved in conflicts."
 
     # Actions & Decisions
-    decisions = row['decisions']
+    decisions = row["decisions"]
     decisions_summary = "\n".join(decisions) if decisions else "No decisions made."
 
     # Priority Assignment
-    priority_order = row['priority_order']
+    priority_order = row["priority_order"]
     if priority_order:
         priority_list = [
             f"Vehicle {vehicle_id}: Priority {priority}"
@@ -95,7 +94,7 @@ def parse_analysis_to_string(row):
         priority_summary = "No priority information available."
 
     # Vehicle Waiting Times
-    waiting_times = row['waiting_times']
+    waiting_times = row["waiting_times"]
     if waiting_times:
         waiting_list = [
             f"Vehicle {vehicle_id}: {waiting_time} second(s)"

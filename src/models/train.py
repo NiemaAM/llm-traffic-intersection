@@ -16,10 +16,11 @@ import mlflow.pyfunc
 import pandas as pd
 
 MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "mlruns")
-EXPERIMENT_NAME     = "traffic-intersection-llm"
+EXPERIMENT_NAME = "traffic-intersection-llm"
 
 
 # ─── MLflow experiment setup ──────────────────────────────────────────────────
+
 
 def setup_mlflow(experiment_name: str = EXPERIMENT_NAME) -> str:
     mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
@@ -34,18 +35,21 @@ def setup_mlflow(experiment_name: str = EXPERIMENT_NAME) -> str:
 
 # ─── Evaluation helpers ───────────────────────────────────────────────────────
 
+
 def compute_metrics(y_true: list, y_pred: list) -> dict[str, float]:
     from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
+
     return {
-        "accuracy":  accuracy_score(y_true, y_pred),
+        "accuracy": accuracy_score(y_true, y_pred),
         "precision": precision_score(y_true, y_pred, zero_division=0),
-        "recall":    recall_score(y_true, y_pred, zero_division=0),
-        "f1":        f1_score(y_true, y_pred, zero_division=0),
-        "fnr":       1 - recall_score(y_true, y_pred, zero_division=0),
+        "recall": recall_score(y_true, y_pred, zero_division=0),
+        "f1": f1_score(y_true, y_pred, zero_division=0),
+        "fnr": 1 - recall_score(y_true, y_pred, zero_division=0),
     }
 
 
 # ─── Training run ─────────────────────────────────────────────────────────────
+
 
 def run_evaluation(
     model_name: str = "gpt-4o-mini",
@@ -60,6 +64,7 @@ def run_evaluation(
     Evaluate the LLM on held-out scenarios and log results to MLflow.
     """
     import sys
+
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from models.llm_model import IntersectionLLM
 
@@ -70,24 +75,26 @@ def run_evaluation(
     # Build a balanced sample: equal number of conflict and no-conflict scenarios
     # This prevents the model from gaming accuracy by always predicting "no"
     import random
+
     all_scenarios = list(raw_df.groupby("scenario_id"))
-    conflict_scenarios    = [(sid, g) for sid, g in all_scenarios if g.iloc[0]["is_conflict"] == "yes"]
-    no_conflict_scenarios = [(sid, g) for sid, g in all_scenarios if g.iloc[0]["is_conflict"] == "no"]
+    conflict_scenarios = [(sid, g) for sid, g in all_scenarios if g.iloc[0]["is_conflict"] == "yes"]
+    no_conflict_scenarios = [
+        (sid, g) for sid, g in all_scenarios if g.iloc[0]["is_conflict"] == "no"
+    ]
 
     half = max_eval_scenarios // 2
     random.seed(42)
-    sampled = (
-        random.sample(conflict_scenarios,    min(half, len(conflict_scenarios))) +
-        random.sample(no_conflict_scenarios, min(half, len(no_conflict_scenarios)))
+    sampled = random.sample(conflict_scenarios, min(half, len(conflict_scenarios))) + random.sample(
+        no_conflict_scenarios, min(half, len(no_conflict_scenarios))
     )
     random.shuffle(sampled)
     scenarios = sampled[:max_eval_scenarios]
 
     params = {
-        "model_name":          fine_tuned_model_id or model_name,
-        "few_shot":            few_shot,
-        "fine_tuned":          fine_tuned_model_id is not None,
-        "eval_scenarios":      len(scenarios),
+        "model_name": fine_tuned_model_id or model_name,
+        "few_shot": few_shot,
+        "fine_tuned": fine_tuned_model_id is not None,
+        "eval_scenarios": len(scenarios),
     }
 
     with mlflow.start_run(run_name=run_name or f"eval-{model_name}"):
@@ -104,10 +111,16 @@ def run_evaluation(
         errors = 0
 
         for scenario_id, group in scenarios:
-            vehicles = group[[
-                "vehicle_id", "lane", "speed",
-                "distance_to_intersection", "direction", "destination"
-            ]].to_dict(orient="records")
+            vehicles = group[
+                [
+                    "vehicle_id",
+                    "lane",
+                    "speed",
+                    "distance_to_intersection",
+                    "direction",
+                    "destination",
+                ]
+            ].to_dict(orient="records")
             scenario = {"vehicles": vehicles}
             true_label = 1 if group.iloc[0]["is_conflict"] == "yes" else 0
 
@@ -125,7 +138,7 @@ def run_evaluation(
         if y_true:
             metrics = compute_metrics(y_true, y_pred)
             metrics["avg_latency_s"] = sum(latencies) / len(latencies)
-            metrics["error_rate"]    = errors / len(scenarios)
+            metrics["error_rate"] = errors / len(scenarios)
 
             mlflow.log_metrics(metrics)
             print("\n📊 Evaluation Results:")
@@ -147,6 +160,7 @@ def run_evaluation(
 
 # ─── Fine-tuning launcher ─────────────────────────────────────────────────────
 
+
 def launch_finetune(
     training_file_path: str = "data/processed/finetune_train.jsonl",
     model: str = "gpt-4o-mini",
@@ -158,6 +172,7 @@ def launch_finetune(
     """
     try:
         from openai import OpenAI
+
         client = OpenAI()
     except ImportError:
         print("❌ openai package not installed")
@@ -178,18 +193,21 @@ def launch_finetune(
     # Log to MLflow
     setup_mlflow()
     with mlflow.start_run(run_name=f"finetune-{model}"):
-        mlflow.log_params({
-            "base_model":    model,
-            "n_epochs":      n_epochs,
-            "training_file": training_file_path,
-            "job_id":        job.id,
-        })
+        mlflow.log_params(
+            {
+                "base_model": model,
+                "n_epochs": n_epochs,
+                "training_file": training_file_path,
+                "job_id": job.id,
+            }
+        )
 
     return job.id
 
 
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", choices=["eval", "finetune"], default="eval")
     parser.add_argument("--model", default="gpt-4o-mini")

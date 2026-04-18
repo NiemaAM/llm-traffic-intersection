@@ -43,6 +43,7 @@ app.add_middleware(
 
 _llm: IntersectionLLM | None = None
 
+
 def get_llm() -> IntersectionLLM:
     global _llm
     if _llm is None:
@@ -56,12 +57,15 @@ def get_llm() -> IntersectionLLM:
 
 # ─── Request / Response schemas ───────────────────────────────────────────────
 
+
 class Vehicle(BaseModel):
     vehicle_id: str = Field(..., json_schema_extra={"example": "V1234"})
     lane: int = Field(..., ge=1, le=10, json_schema_extra={"example": 1})
     speed: float = Field(..., ge=0, le=200, json_schema_extra={"example": 62.5})
     distance_to_intersection: float = Field(..., ge=0, le=2000, json_schema_extra={"example": 45.0})
-    direction: str = Field(..., pattern="^(north|south|east|west)$", json_schema_extra={"example": "north"})
+    direction: str = Field(
+        ..., pattern="^(north|south|east|west)$", json_schema_extra={"example": "north"}
+    )
     destination: str = Field(..., json_schema_extra={"example": "A"})
 
 
@@ -92,6 +96,7 @@ class HealthResponse(BaseModel):
 
 
 # ─── Endpoints ────────────────────────────────────────────────────────────────
+
 
 @app.get("/health", response_model=HealthResponse, tags=["System"])
 def health():
@@ -129,6 +134,7 @@ def predict(request: ScenarioRequest):
     cv = result.get("conflict_vehicles", [])
     if isinstance(cv, str):
         import ast
+
         cv = ast.literal_eval(cv)
 
     return {
@@ -168,4 +174,5 @@ def root():
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)

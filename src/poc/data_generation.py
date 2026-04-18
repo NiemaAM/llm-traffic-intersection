@@ -49,7 +49,7 @@ def generate_vehicle_scenario(num_vehicles, intersection_layout, fixed_vehicle_c
                 break
 
         # Choose a random direction
-        direction = random.choice(['north', 'east', 'south', 'west'])
+        direction = random.choice(["north", "east", "south", "west"])
 
         # Get possible lanes for the chosen direction
         direction_lanes = list(intersection_layout[direction].keys())
@@ -63,14 +63,16 @@ def generate_vehicle_scenario(num_vehicles, intersection_layout, fixed_vehicle_c
         speed = random.uniform(20, 80)  # Speed between 20 km/h and 80 km/h
         distance_to_intersection = random.uniform(50, 500)  # Distance between 50 m and 500 m
 
-        vehicles.append({
-            "vehicle_id": vehicle_id,
-            "lane": lane,
-            "speed": speed,
-            "distance_to_intersection": distance_to_intersection,
-            "direction": direction,
-            "destination": destination
-        })
+        vehicles.append(
+            {
+                "vehicle_id": vehicle_id,
+                "lane": lane,
+                "speed": speed,
+                "distance_to_intersection": distance_to_intersection,
+                "direction": direction,
+                "destination": destination,
+            }
+        )
 
     scenario = {"vehicles_scenario": vehicles}
     return scenario
@@ -89,10 +91,10 @@ def generate_dataset(total_records=50000, num_vehicles=5, fixed_vehicle_count=Tr
         pd.DataFrame: A pandas DataFrame containing the dataset.
     """
     data = []
-    conflict_counts = {'yes': 0, 'no': 0}
+    conflict_counts = {"yes": 0, "no": 0}
 
     # Load the intersection layout
-    intersection_layout_json = '''
+    intersection_layout_json = """
     {
         "intersection_layout": {
             "north": {
@@ -113,7 +115,7 @@ def generate_dataset(total_records=50000, num_vehicles=5, fixed_vehicle_count=Tr
             }
         }
     }
-    '''
+    """
     intersection_layout_data = json.loads(intersection_layout_json)
     intersection_layout = parse_intersection_layout(intersection_layout_data)
 
@@ -126,7 +128,7 @@ def generate_dataset(total_records=50000, num_vehicles=5, fixed_vehicle_count=Tr
 
         conflicts = detect_conflicts(vehicles)
 
-        is_conflict = 'yes' if conflicts else 'no'
+        is_conflict = "yes" if conflicts else "no"
 
         # Balance the dataset
         if conflict_counts[is_conflict] >= total_records / 2:
@@ -134,20 +136,21 @@ def generate_dataset(total_records=50000, num_vehicles=5, fixed_vehicle_count=Tr
         conflict_counts[is_conflict] += 1
 
         number_of_conflicts = len(conflicts)
-        places_of_conflicts = ['intersection' for _ in conflicts]  # All conflicts are at the intersection
+        places_of_conflicts = [
+            "intersection" for _ in conflicts
+        ]  # All conflicts are at the intersection
 
         # Extract conflict_vehicles and decisions
         conflict_vehicles = []
         decisions = []
         all_conflict_vehicle_ids = set()
         for conflict in conflicts:
-            conflict_vehicle_ids = set([conflict['vehicle1_id'], conflict['vehicle2_id']])
+            conflict_vehicle_ids = set([conflict["vehicle1_id"], conflict["vehicle2_id"]])
             all_conflict_vehicle_ids.update(conflict_vehicle_ids)
-            conflict_vehicles.append({
-                'vehicle1_id': conflict['vehicle1_id'],
-                'vehicle2_id': conflict['vehicle2_id']
-            })
-            decisions.append(conflict['decision'])
+            conflict_vehicles.append(
+                {"vehicle1_id": conflict["vehicle1_id"], "vehicle2_id": conflict["vehicle2_id"]}
+            )
+            decisions.append(conflict["decision"])
 
         # Now, for all vehicles involved in conflicts, recompute priority orders and waiting times
         # Build a list of vehicles involved in conflicts
@@ -167,7 +170,9 @@ def generate_dataset(total_records=50000, num_vehicles=5, fixed_vehicle_count=Tr
 
             # Compute waiting times
             traversal_time = 2  # Time to clear the intersection in seconds
-            vehicle_arrival_times = {v.vehicle_id: v.time_to_intersection for v in conflicting_vehicles}
+            vehicle_arrival_times = {
+                v.vehicle_id: v.time_to_intersection for v in conflicting_vehicles
+            }
             for idx, vehicle in enumerate(sorted_vehicles):
                 if idx == 0:
                     # First vehicle doesn't wait
@@ -175,30 +180,35 @@ def generate_dataset(total_records=50000, num_vehicles=5, fixed_vehicle_count=Tr
                 else:
                     # Wait until the previous vehicle has cleared the intersection
                     prev_vehicle = sorted_vehicles[idx - 1]
-                    required_arrival_time = vehicle_arrival_times[prev_vehicle.vehicle_id] + traversal_time
-                    wait_time = max(0, required_arrival_time - vehicle_arrival_times[vehicle.vehicle_id])
+                    required_arrival_time = (
+                        vehicle_arrival_times[prev_vehicle.vehicle_id] + traversal_time
+                    )
+                    wait_time = max(
+                        0, required_arrival_time - vehicle_arrival_times[vehicle.vehicle_id]
+                    )
                     overall_waiting_times[vehicle.vehicle_id] = math.ceil(wait_time)
                     # Update the vehicle's arrival time after waiting
                     vehicle_arrival_times[vehicle.vehicle_id] += wait_time
 
         # For vehicles not involved in conflicts, set priority and waiting time to default values
-        non_conflicting_vehicles = [v for v in vehicles if v.vehicle_id not in all_conflict_vehicle_ids]
+        non_conflicting_vehicles = [
+            v for v in vehicles if v.vehicle_id not in all_conflict_vehicle_ids
+        ]
         for vehicle in non_conflicting_vehicles:
             overall_priority_order[vehicle.vehicle_id] = None  # No priority needed
             overall_waiting_times[vehicle.vehicle_id] = 0  # No waiting time
 
         record = {
-            'scenario': json.dumps(scenario),
-            'is_conflict': is_conflict,
-            'number_of_conflicts': number_of_conflicts,
-            'places_of_conflicts': places_of_conflicts,
-            'conflict_vehicles': conflict_vehicles,
-            'decisions': decisions,
-            'priority_order': overall_priority_order,
-            'waiting_times': overall_waiting_times
+            "scenario": json.dumps(scenario),
+            "is_conflict": is_conflict,
+            "number_of_conflicts": number_of_conflicts,
+            "places_of_conflicts": places_of_conflicts,
+            "conflict_vehicles": conflict_vehicles,
+            "decisions": decisions,
+            "priority_order": overall_priority_order,
+            "waiting_times": overall_waiting_times,
         }
         data.append(record)
 
     dataset = pd.DataFrame(data)
     return dataset
-

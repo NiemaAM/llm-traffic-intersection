@@ -15,12 +15,7 @@ import math
 import warnings
 
 # Mapping of opposite directions
-OPPOSITE_DIRECTIONS = {
-    'north': 'south',
-    'east': 'west',
-    'south': 'north',
-    'west': 'east'
-}
+OPPOSITE_DIRECTIONS = {"north": "south", "east": "west", "south": "north", "west": "east"}
 
 # Enable or disable logging for debugging
 log = False
@@ -36,7 +31,7 @@ def parse_intersection_layout(data):
     Returns:
         dict: Parsed intersection layout.
     """
-    return data['intersection_layout']
+    return data["intersection_layout"]
 
 
 class Vehicle:
@@ -54,7 +49,7 @@ class Vehicle:
         movement_type (str): Type of movement ('straight', 'left', 'right', or 'unknown').
     """
 
-    VALID_DIRECTIONS = ['north', 'east', 'south', 'west']
+    VALID_DIRECTIONS = ["north", "east", "south", "west"]
 
     def __init__(
         self,
@@ -64,7 +59,7 @@ class Vehicle:
         distance_to_intersection,
         direction,
         destination,
-        intersection_layout
+        intersection_layout,
     ):
         """
         Initializes a Vehicle instance.
@@ -89,10 +84,12 @@ class Vehicle:
         self.movement_type = self.get_movement_type(intersection_layout)
         # If logging is enabled, print vehicle information after initialization
         if log:
-            print(f"Initialized Vehicle {self.vehicle_id}: lane={self.lane}, speed={self.speed}, "
-                  f"distance_to_intersection={self.distance_to_intersection}, direction={self.direction}, "
-                  f"destination={self.destination}, movement_type={self.movement_type}, "
-                  f"time_to_intersection={self.time_to_intersection:.2f}s")
+            print(
+                f"Initialized Vehicle {self.vehicle_id}: lane={self.lane}, speed={self.speed}, "
+                f"distance_to_intersection={self.distance_to_intersection}, direction={self.direction}, "
+                f"destination={self.destination}, movement_type={self.movement_type}, "
+                f"time_to_intersection={self.time_to_intersection:.2f}s"
+            )
 
     def validate_inputs(self):
         """
@@ -116,7 +113,7 @@ class Vehicle:
         """
         speed_m_per_s = (self.speed * 1000) / 3600  # Convert km/h to m/s
         if speed_m_per_s == 0:
-            return float('inf')  # Infinite time if speed is zero
+            return float("inf")  # Infinite time if speed is zero
         time = self.distance_to_intersection / speed_m_per_s
         return time
 
@@ -138,35 +135,34 @@ class Vehicle:
         if not lane_destinations:
             warnings.warn(
                 f"Vehicle {self.vehicle_id} is in an unknown lane '{lane}' for direction '{direction}'.",
-                category=UserWarning
+                category=UserWarning,
             )
-            return 'unknown'
+            return "unknown"
         if destination not in lane_destinations:
             warnings.warn(
                 f"Destination '{destination}' not accessible from lane '{lane}' for direction '{direction}'.",
-                category=UserWarning
+                category=UserWarning,
             )
-            return 'unknown'
+            return "unknown"
 
         index = lane_destinations.index(destination)
-        if lane in ['1', '3', '5', '7']:
+        if lane in ["1", "3", "5", "7"]:
             if index == 0:
-                movement_type = 'right'
+                movement_type = "right"
             elif index == 1:
-                movement_type = 'straight'
+                movement_type = "straight"
             elif index == 2:
-                movement_type = 'left'
+                movement_type = "left"
             else:
-                movement_type = 'unknown'
-        elif lane in ['2', '4', '6', '8']:
-            movement_type = 'left'  # These lanes are dedicated left-turn lanes
+                movement_type = "unknown"
+        elif lane in ["2", "4", "6", "8"]:
+            movement_type = "left"  # These lanes are dedicated left-turn lanes
         else:
-            movement_type = 'unknown'
+            movement_type = "unknown"
 
-        if movement_type == 'unknown':
+        if movement_type == "unknown":
             warnings.warn(
-                f"Vehicle {self.vehicle_id} has unknown movement type.",
-                category=UserWarning
+                f"Vehicle {self.vehicle_id} has unknown movement type.", category=UserWarning
             )
         return movement_type
 
@@ -184,19 +180,19 @@ def parse_vehicles(data, intersection_layout):
     """
     vehicles = []
     vehicle_ids = set()
-    for vehicle_data in data['vehicles_scenario']:
-        vehicle_id = vehicle_data['vehicle_id']
+    for vehicle_data in data["vehicles_scenario"]:
+        vehicle_id = vehicle_data["vehicle_id"]
         if vehicle_id in vehicle_ids:
             raise ValueError(f"Duplicate vehicle ID detected: {vehicle_id}")
         vehicle_ids.add(vehicle_id)
         vehicle = Vehicle(
             vehicle_id=vehicle_id,
-            lane=vehicle_data['lane'],
-            speed=vehicle_data['speed'],
-            distance_to_intersection=vehicle_data['distance_to_intersection'],
-            direction=vehicle_data['direction'],
-            destination=vehicle_data['destination'],
-            intersection_layout=intersection_layout
+            lane=vehicle_data["lane"],
+            speed=vehicle_data["speed"],
+            distance_to_intersection=vehicle_data["distance_to_intersection"],
+            direction=vehicle_data["direction"],
+            destination=vehicle_data["destination"],
+            intersection_layout=intersection_layout,
         )
         vehicles.append(vehicle)
     return vehicles
@@ -214,10 +210,14 @@ def paths_cross(vehicle1, vehicle2):
         bool: True if paths cross, False otherwise.
     """
     if log:
-        print(f"Checking if paths cross between Vehicle {vehicle1.vehicle_id} and Vehicle {vehicle2.vehicle_id}")
-    if 'unknown' in [vehicle1.movement_type, vehicle2.movement_type]:
+        print(
+            f"Checking if paths cross between Vehicle {vehicle1.vehicle_id} and Vehicle {vehicle2.vehicle_id}"
+        )
+    if "unknown" in [vehicle1.movement_type, vehicle2.movement_type]:
         if log:
-            print(f"At least one vehicle has unknown movement type: {vehicle1.movement_type}, {vehicle2.movement_type}")
+            print(
+                f"At least one vehicle has unknown movement type: {vehicle1.movement_type}, {vehicle2.movement_type}"
+            )
         return False
     if vehicle1.vehicle_id == vehicle2.vehicle_id:
         if log:
@@ -231,57 +231,91 @@ def paths_cross(vehicle1, vehicle2):
         return False
 
     # Vehicles going straight from opposite directions do not conflict
-    if vehicle1.movement_type == 'straight' and vehicle2.movement_type == 'straight' and \
-       OPPOSITE_DIRECTIONS[vehicle1.direction] == vehicle2.direction:
+    if (
+        vehicle1.movement_type == "straight"
+        and vehicle2.movement_type == "straight"
+        and OPPOSITE_DIRECTIONS[vehicle1.direction] == vehicle2.direction
+    ):
         if log:
-            print(f"Vehicles are going straight from opposite directions: {vehicle1.direction} and {vehicle2.direction}")
+            print(
+                f"Vehicles are going straight from opposite directions: {vehicle1.direction} and {vehicle2.direction}"
+            )
         return False
 
     # Opposite left turns do not conflict
-    if vehicle1.movement_type == 'left' and vehicle2.movement_type == 'left' and \
-       OPPOSITE_DIRECTIONS[vehicle1.direction] == vehicle2.direction:
+    if (
+        vehicle1.movement_type == "left"
+        and vehicle2.movement_type == "left"
+        and OPPOSITE_DIRECTIONS[vehicle1.direction] == vehicle2.direction
+    ):
         if log:
-            print(f"Vehicles are making left turns from opposite directions: {vehicle1.direction} and {vehicle2.direction}")
+            print(
+                f"Vehicles are making left turns from opposite directions: {vehicle1.direction} and {vehicle2.direction}"
+            )
         return False
 
     # Right turns from opposite directions do not conflict
-    if vehicle1.movement_type == 'right' and vehicle2.movement_type == 'right' and \
-       OPPOSITE_DIRECTIONS[vehicle1.direction] == vehicle2.direction:
+    if (
+        vehicle1.movement_type == "right"
+        and vehicle2.movement_type == "right"
+        and OPPOSITE_DIRECTIONS[vehicle1.direction] == vehicle2.direction
+    ):
         if log:
-            print(f"Vehicles are making right turns from opposite directions: {vehicle1.direction} and {vehicle2.direction}")
+            print(
+                f"Vehicles are making right turns from opposite directions: {vehicle1.direction} and {vehicle2.direction}"
+            )
         return False
 
     # Right turns from adjacent directions do not conflict
-    if vehicle1.movement_type == 'right' and vehicle2.movement_type == 'right' and \
-       vehicle1.direction != vehicle2.direction and \
-       OPPOSITE_DIRECTIONS[vehicle1.direction] != vehicle2.direction:
+    if (
+        vehicle1.movement_type == "right"
+        and vehicle2.movement_type == "right"
+        and vehicle1.direction != vehicle2.direction
+        and OPPOSITE_DIRECTIONS[vehicle1.direction] != vehicle2.direction
+    ):
         if log:
-            print(f"Vehicles are making right turns from adjacent directions: {vehicle1.direction} and {vehicle2.direction}")
+            print(
+                f"Vehicles are making right turns from adjacent directions: {vehicle1.direction} and {vehicle2.direction}"
+            )
         return False
 
     # Vehicles going straight from perpendicular directions conflict
-    if vehicle1.movement_type == 'straight' and vehicle2.movement_type == 'straight' and \
-       (vehicle1.direction != vehicle2.direction) and \
-       (OPPOSITE_DIRECTIONS[vehicle1.direction] != vehicle2.direction):
+    if (
+        vehicle1.movement_type == "straight"
+        and vehicle2.movement_type == "straight"
+        and (vehicle1.direction != vehicle2.direction)
+        and (OPPOSITE_DIRECTIONS[vehicle1.direction] != vehicle2.direction)
+    ):
         if log:
-            print(f"Vehicles are going straight from perpendicular directions: {vehicle1.direction} and {vehicle2.direction}")
+            print(
+                f"Vehicles are going straight from perpendicular directions: {vehicle1.direction} and {vehicle2.direction}"
+            )
         return True
 
     # Left turn conflicts
-    if vehicle1.movement_type == 'left' or vehicle2.movement_type == 'left':
+    if vehicle1.movement_type == "left" or vehicle2.movement_type == "left":
         if log:
-            print(f"At least one vehicle is turning left: {vehicle1.movement_type}, {vehicle2.movement_type}")
+            print(
+                f"At least one vehicle is turning left: {vehicle1.movement_type}, {vehicle2.movement_type}"
+            )
         return True
 
     # Right turn vs straight from adjacent directions conflict
-    if (vehicle1.movement_type == 'right' and vehicle2.movement_type == 'straight' and \
-        (vehicle1.direction != vehicle2.direction) and \
-        (OPPOSITE_DIRECTIONS[vehicle1.direction] != vehicle2.direction)) or \
-       (vehicle2.movement_type == 'right' and vehicle1.movement_type == 'straight' and \
-        (vehicle1.direction != vehicle2.direction) and \
-        (OPPOSITE_DIRECTIONS[vehicle2.direction] != vehicle1.direction)):
+    if (
+        vehicle1.movement_type == "right"
+        and vehicle2.movement_type == "straight"
+        and (vehicle1.direction != vehicle2.direction)
+        and (OPPOSITE_DIRECTIONS[vehicle1.direction] != vehicle2.direction)
+    ) or (
+        vehicle2.movement_type == "right"
+        and vehicle1.movement_type == "straight"
+        and (vehicle1.direction != vehicle2.direction)
+        and (OPPOSITE_DIRECTIONS[vehicle2.direction] != vehicle1.direction)
+    ):
         if log:
-            print("One vehicle is turning right and the other is going straight from adjacent directions.")
+            print(
+                "One vehicle is turning right and the other is going straight from adjacent directions."
+            )
         return True
 
     # For all other cases, assume paths do not cross
@@ -302,13 +336,19 @@ def arrival_time_close(vehicle1, vehicle2, threshold=4.0):
     Returns:
         bool: True if arrival times are within the threshold, False otherwise.
     """
-    if vehicle1.time_to_intersection == float('inf') or vehicle2.time_to_intersection == float('inf'):
+    if vehicle1.time_to_intersection == float("inf") or vehicle2.time_to_intersection == float(
+        "inf"
+    ):
         if log:
-            print(f"At least one vehicle has infinite time to intersection: {vehicle1.time_to_intersection}, {vehicle2.time_to_intersection}")
+            print(
+                f"At least one vehicle has infinite time to intersection: {vehicle1.time_to_intersection}, {vehicle2.time_to_intersection}"
+            )
         return False
     time_diff = abs(vehicle1.time_to_intersection - vehicle2.time_to_intersection)
     if log:
-        print(f"Time difference between Vehicle {vehicle1.vehicle_id} and Vehicle {vehicle2.vehicle_id}: {time_diff:.2f}s")
+        print(
+            f"Time difference between Vehicle {vehicle1.vehicle_id} and Vehicle {vehicle2.vehicle_id}: {time_diff:.2f}s"
+        )
     return time_diff <= threshold
 
 
@@ -323,12 +363,14 @@ def is_vehicle_on_right(vehicle1, vehicle2):
     Returns:
         bool: True if vehicle2 is on the right of vehicle1, False otherwise.
     """
-    direction_order = ['north', 'east', 'south', 'west']
+    direction_order = ["north", "east", "south", "west"]
     idx1 = direction_order.index(vehicle1.direction)
     idx2 = direction_order.index(vehicle2.direction)
     result = (idx2 - idx1) % 4 == 1
     if log:
-        print(f"Vehicle {vehicle2.vehicle_id} is {'on the right of' if result else 'not on the right of'} Vehicle {vehicle1.vehicle_id}")
+        print(
+            f"Vehicle {vehicle2.vehicle_id} is {'on the right of' if result else 'not on the right of'} Vehicle {vehicle1.vehicle_id}"
+        )
     return result
 
 
@@ -344,7 +386,9 @@ def apply_priority_rules(vehicle1, vehicle2):
         tuple: (decision message, vehicle priorities dictionary)
     """
     if log:
-        print(f"Applying priority rules between Vehicle {vehicle1.vehicle_id} and Vehicle {vehicle2.vehicle_id}")
+        print(
+            f"Applying priority rules between Vehicle {vehicle1.vehicle_id} and Vehicle {vehicle2.vehicle_id}"
+        )
     time_difference = abs(vehicle1.time_to_intersection - vehicle2.time_to_intersection)
     if log:
         print(f"Time difference: {time_difference:.2f}s")
@@ -353,49 +397,65 @@ def apply_priority_rules(vehicle1, vehicle2):
         if log:
             print("Vehicles arrive within 1 second of each other")
         # 1. Straight over turn
-        if vehicle1.movement_type == 'straight' and vehicle2.movement_type != 'straight':
+        if vehicle1.movement_type == "straight" and vehicle2.movement_type != "straight":
             if log:
-                print(f"Vehicle {vehicle1.vehicle_id} is going straight, Vehicle {vehicle2.vehicle_id} is turning")
+                print(
+                    f"Vehicle {vehicle1.vehicle_id} is going straight, Vehicle {vehicle2.vehicle_id} is turning"
+                )
             decision = f"Potential conflict: Vehicle {vehicle2.vehicle_id} must yield to Vehicle {vehicle1.vehicle_id}"
             priority = {vehicle1.vehicle_id: 1, vehicle2.vehicle_id: 2}
-        elif vehicle2.movement_type == 'straight' and vehicle1.movement_type != 'straight':
+        elif vehicle2.movement_type == "straight" and vehicle1.movement_type != "straight":
             if log:
-                print(f"Vehicle {vehicle2.vehicle_id} is going straight, Vehicle {vehicle1.vehicle_id} is turning")
+                print(
+                    f"Vehicle {vehicle2.vehicle_id} is going straight, Vehicle {vehicle1.vehicle_id} is turning"
+                )
             decision = f"Potential conflict: Vehicle {vehicle1.vehicle_id} must yield to Vehicle {vehicle2.vehicle_id}"
             priority = {vehicle2.vehicle_id: 1, vehicle1.vehicle_id: 2}
         # 2. Right turn over left turn
-        elif vehicle1.movement_type == 'right' and vehicle2.movement_type == 'left':
+        elif vehicle1.movement_type == "right" and vehicle2.movement_type == "left":
             if log:
-                print(f"Vehicle {vehicle1.vehicle_id} is turning right, Vehicle {vehicle2.vehicle_id} is turning left")
+                print(
+                    f"Vehicle {vehicle1.vehicle_id} is turning right, Vehicle {vehicle2.vehicle_id} is turning left"
+                )
             decision = f"Potential conflict: Vehicle {vehicle2.vehicle_id} must yield to Vehicle {vehicle1.vehicle_id}"
             priority = {vehicle1.vehicle_id: 1, vehicle2.vehicle_id: 2}
-        elif vehicle2.movement_type == 'right' and vehicle1.movement_type == 'left':
+        elif vehicle2.movement_type == "right" and vehicle1.movement_type == "left":
             if log:
-                print(f"Vehicle {vehicle2.vehicle_id} is turning right, Vehicle {vehicle1.vehicle_id} is turning left")
+                print(
+                    f"Vehicle {vehicle2.vehicle_id} is turning right, Vehicle {vehicle1.vehicle_id} is turning left"
+                )
             decision = f"Potential conflict: Vehicle {vehicle1.vehicle_id} must yield to Vehicle {vehicle2.vehicle_id}"
             priority = {vehicle2.vehicle_id: 1, vehicle1.vehicle_id: 2}
         # 3. Right-hand rule
         else:
             if is_vehicle_on_right(vehicle1, vehicle2):
                 if log:
-                    print(f"Vehicle {vehicle2.vehicle_id} is on the right of Vehicle {vehicle1.vehicle_id}")
+                    print(
+                        f"Vehicle {vehicle2.vehicle_id} is on the right of Vehicle {vehicle1.vehicle_id}"
+                    )
                 decision = f"Potential conflict: Vehicle {vehicle1.vehicle_id} must yield to Vehicle {vehicle2.vehicle_id}"
                 priority = {vehicle2.vehicle_id: 1, vehicle1.vehicle_id: 2}
             else:
                 if log:
-                    print(f"Vehicle {vehicle1.vehicle_id} is on the right of Vehicle {vehicle2.vehicle_id}")
+                    print(
+                        f"Vehicle {vehicle1.vehicle_id} is on the right of Vehicle {vehicle2.vehicle_id}"
+                    )
                 decision = f"Potential conflict: Vehicle {vehicle2.vehicle_id} must yield to Vehicle {vehicle1.vehicle_id}"
                 priority = {vehicle1.vehicle_id: 1, vehicle2.vehicle_id: 2}
     else:
         # Vehicle that arrives later must yield
         if vehicle1.time_to_intersection > vehicle2.time_to_intersection:
             if log:
-                print(f"Vehicle {vehicle1.vehicle_id} arrives later than Vehicle {vehicle2.vehicle_id}")
+                print(
+                    f"Vehicle {vehicle1.vehicle_id} arrives later than Vehicle {vehicle2.vehicle_id}"
+                )
             decision = f"Potential conflict: Vehicle {vehicle1.vehicle_id} must yield to Vehicle {vehicle2.vehicle_id}"
             priority = {vehicle2.vehicle_id: 1, vehicle1.vehicle_id: 2}
         else:
             if log:
-                print(f"Vehicle {vehicle2.vehicle_id} arrives later than Vehicle {vehicle1.vehicle_id}")
+                print(
+                    f"Vehicle {vehicle2.vehicle_id} arrives later than Vehicle {vehicle1.vehicle_id}"
+                )
             decision = f"Potential conflict: Vehicle {vehicle2.vehicle_id} must yield to Vehicle {vehicle1.vehicle_id}"
             priority = {vehicle1.vehicle_id: 1, vehicle2.vehicle_id: 2}
     if log:
@@ -433,7 +493,11 @@ def compute_waiting_times(vehicles, priorities):
                 if hp_vehicle:
                     # Calculate the additional waiting time needed
                     traversal_time = 2  # Assume it takes 2 seconds to clear the intersection
-                    wait_time = max(0, (hp_vehicle.time_to_intersection + traversal_time) - vehicle.time_to_intersection)
+                    wait_time = max(
+                        0,
+                        (hp_vehicle.time_to_intersection + traversal_time)
+                        - vehicle.time_to_intersection,
+                    )
                     max_wait = max(max_wait, wait_time)
             waiting_times[vehicle_id] = math.ceil(max_wait)
     return waiting_times
@@ -467,14 +531,16 @@ def detect_conflicts(vehicles):
                 if arrival_time_close(vehicle1, vehicle2):
                     decision, priority = apply_priority_rules(vehicle1, vehicle2)
                     waiting_times = compute_waiting_times([vehicle1, vehicle2], priority)
-                    conflicts.append({
-                        'vehicle1_id': vehicle1.vehicle_id,
-                        'vehicle2_id': vehicle2.vehicle_id,
-                        'decision': decision,
-                        'place': 'intersection',
-                        'priority_order': priority,
-                        'waiting_times': waiting_times
-                    })
+                    conflicts.append(
+                        {
+                            "vehicle1_id": vehicle1.vehicle_id,
+                            "vehicle2_id": vehicle2.vehicle_id,
+                            "decision": decision,
+                            "place": "intersection",
+                            "priority_order": priority,
+                            "waiting_times": waiting_times,
+                        }
+                    )
                 else:
                     if log:
                         print("Vehicles do not arrive close in time; no conflict.")
@@ -494,5 +560,5 @@ def output_conflicts(conflicts):
     """
     for conflict in conflicts:
         if log:
-            print(conflict['decision'])
+            print(conflict["decision"])
         pass

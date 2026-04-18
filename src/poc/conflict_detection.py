@@ -29,7 +29,7 @@ LAYOUT_PATH = Path(__file__).parent.parent.parent / "data" / "external" / "inter
 # Pairs of directions whose through-movements physically cross
 CONFLICT_DIRECTION_PAIRS: set[frozenset] = {
     frozenset({"north", "south"}),
-    frozenset({"east",  "west"}),
+    frozenset({"east", "west"}),
     frozenset({"north", "east"}),
     frozenset({"south", "west"}),
     frozenset({"north", "west"}),
@@ -42,13 +42,14 @@ NEAR_INTERSECTION_THRESHOLD = 80.0
 
 # ─── Data classes ─────────────────────────────────────────────────────────────
 
+
 @dataclass
 class Vehicle:
     vehicle_id: str
     lane: int
-    speed: float                    # km/h
-    distance_to_intersection: float # metres
-    direction: str                  # north | south | east | west
+    speed: float  # km/h
+    distance_to_intersection: float  # metres
+    direction: str  # north | south | east | west
     destination: str
 
     @property
@@ -97,20 +98,21 @@ class IntersectionDecision:
 
     def to_dict(self) -> dict:
         return {
-            "is_conflict":          "yes" if self.is_conflict else "no",
-            "number_of_conflicts":  self.number_of_conflicts,
-            "places_of_conflicts":  self.places_of_conflicts,
-            "conflict_vehicles":    [
+            "is_conflict": "yes" if self.is_conflict else "no",
+            "number_of_conflicts": self.number_of_conflicts,
+            "places_of_conflicts": self.places_of_conflicts,
+            "conflict_vehicles": [
                 {"vehicle1_id": p.vehicle1_id, "vehicle2_id": p.vehicle2_id}
                 for p in self.conflict_pairs
             ],
-            "decisions":        self.decisions,
-            "priority_order":   self.priority_order,
-            "waiting_times":    self.waiting_times,
+            "decisions": self.decisions,
+            "priority_order": self.priority_order,
+            "waiting_times": self.waiting_times,
         }
 
 
 # ─── Parsing helpers ──────────────────────────────────────────────────────────
+
 
 def parse_intersection_layout(data: dict) -> dict:
     """Return the intersection layout dict (pass-through, validates keys)."""
@@ -142,18 +144,21 @@ def parse_vehicles(scenario_data: dict, layout: dict) -> list[Vehicle]:
                 f"Vehicle {v['vehicle_id']}: unknown direction '{direction}'. "
                 f"Valid: {valid_dirs}"
             )
-        vehicles.append(Vehicle(
-            vehicle_id=str(v["vehicle_id"]),
-            lane=int(v["lane"]),
-            speed=float(v["speed"]),
-            distance_to_intersection=float(v["distance_to_intersection"]),
-            direction=direction,
-            destination=str(v["destination"]),
-        ))
+        vehicles.append(
+            Vehicle(
+                vehicle_id=str(v["vehicle_id"]),
+                lane=int(v["lane"]),
+                speed=float(v["speed"]),
+                distance_to_intersection=float(v["distance_to_intersection"]),
+                direction=direction,
+                destination=str(v["destination"]),
+            )
+        )
     return vehicles
 
 
 # ─── Conflict detection ───────────────────────────────────────────────────────
+
 
 def _directions_conflict(d1: str, d2: str) -> bool:
     return frozenset({d1, d2}) in CONFLICT_DIRECTION_PAIRS
@@ -168,7 +173,7 @@ def detect_conflicts(vehicles: list[Vehicle]) -> list[ConflictPair]:
     """
     conflicts = []
     for i, v1 in enumerate(vehicles):
-        for v2 in vehicles[i + 1:]:
+        for v2 in vehicles[i + 1 :]:
             if _directions_conflict(v1.direction, v2.direction):
                 if v1.is_near and v2.is_near:
                     conflicts.append(ConflictPair(v1, v2))
@@ -176,6 +181,7 @@ def detect_conflicts(vehicles: list[Vehicle]) -> list[ConflictPair]:
 
 
 # ─── Priority & decisions ─────────────────────────────────────────────────────
+
 
 def assign_priorities(
     vehicles: list[Vehicle],
@@ -239,6 +245,7 @@ def assign_priorities(
 
 # ─── High-level convenience function ─────────────────────────────────────────
 
+
 def analyze_intersection(
     vehicles: list[Vehicle] | list[dict],
     layout: dict | None = None,
@@ -254,6 +261,7 @@ def analyze_intersection(
             layout = load_intersection_layout()
         except FileNotFoundError:
             from src.data.generate_data import INTERSECTION_LAYOUT
+
             layout = INTERSECTION_LAYOUT
 
     if vehicles and isinstance(vehicles[0], dict):

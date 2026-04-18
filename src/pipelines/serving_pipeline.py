@@ -33,6 +33,7 @@ def _api_url() -> str:
 
 # ─── Step 1: Load best model config ──────────────────────────────────────────
 
+
 @step
 def load_best_model() -> Annotated[dict, "model_config"]:
     """
@@ -42,8 +43,8 @@ def load_best_model() -> Annotated[dict, "model_config"]:
     mlflow.set_tracking_uri(_mlflow_uri())
 
     try:
-        client  = mlflow.tracking.MlflowClient()
-        exp     = client.get_experiment_by_name("traffic-intersection-llm")
+        client = mlflow.tracking.MlflowClient()
+        exp = client.get_experiment_by_name("traffic-intersection-llm")
         if exp:
             runs = client.search_runs(
                 experiment_ids=[exp.experiment_id],
@@ -52,30 +53,33 @@ def load_best_model() -> Annotated[dict, "model_config"]:
                 max_results=1,
             )
             if runs:
-                run    = runs[0]
+                run = runs[0]
                 config = {
-                    "best_config":         run.data.params.get("best_config",         "few_shot"),
-                    "best_f1":             float(run.data.params.get("best_f1",       0.0)),
+                    "best_config": run.data.params.get("best_config", "few_shot"),
+                    "best_f1": float(run.data.params.get("best_f1", 0.0)),
                     "fine_tuned_model_id": run.data.params.get("fine_tuned_model_id", ""),
-                    "model_name":          os.environ.get("MODEL_NAME", "gpt-4o-mini"),
+                    "model_name": os.environ.get("MODEL_NAME", "gpt-4o-mini"),
                 }
-                logger.info(f"✅ Loaded model config from MLflow: best={config['best_config']}  F1={config['best_f1']:.4f}")
+                logger.info(
+                    f"✅ Loaded model config from MLflow: best={config['best_config']}  F1={config['best_f1']:.4f}"
+                )
                 return config
     except Exception as exc:
         logger.warning(f"⚠️  Could not read MLflow config ({exc}) — using defaults")
 
     # Default config
     config = {
-        "best_config":         "few_shot",
-        "best_f1":             0.0,
+        "best_config": "few_shot",
+        "best_f1": 0.0,
         "fine_tuned_model_id": os.environ.get("FINE_TUNED_MODEL_ID", ""),
-        "model_name":          os.environ.get("MODEL_NAME", "gpt-4o-mini"),
+        "model_name": os.environ.get("MODEL_NAME", "gpt-4o-mini"),
     }
     logger.info(f"Using default config: {config}")
     return config
 
 
 # ─── Step 2: Validate live API ────────────────────────────────────────────────
+
 
 @step
 def validate_api(
@@ -104,23 +108,37 @@ def validate_api(
     # 2. Test prediction
     test_scenario = {
         "vehicles": [
-            {"vehicle_id": "TEST001", "lane": 1, "speed": 50,
-             "distance_to_intersection": 100, "direction": "north", "destination": "A"},
-            {"vehicle_id": "TEST002", "lane": 1, "speed": 50,
-             "distance_to_intersection": 100, "direction": "south", "destination": "C"},
+            {
+                "vehicle_id": "TEST001",
+                "lane": 1,
+                "speed": 50,
+                "distance_to_intersection": 100,
+                "direction": "north",
+                "destination": "A",
+            },
+            {
+                "vehicle_id": "TEST002",
+                "lane": 1,
+                "speed": 50,
+                "distance_to_intersection": 100,
+                "direction": "south",
+                "destination": "C",
+            },
         ]
     }
     try:
         t0 = __import__("time").time()
-        r  = requests.post(f"{url}/predict", json=test_scenario, timeout=30)
+        r = requests.post(f"{url}/predict", json=test_scenario, timeout=30)
         latency_ms = (__import__("time").time() - t0) * 1000
 
         if r.status_code == 200:
             body = r.json()
-            health_result["predict"]    = True
+            health_result["predict"] = True
             health_result["latency_ms"] = round(latency_ms, 1)
             health_result["is_conflict"] = body.get("is_conflict", "unknown")
-            logger.info(f"Predict test: ✅  latency={latency_ms:.0f}ms  conflict={body.get('is_conflict')}")
+            logger.info(
+                f"Predict test: ✅  latency={latency_ms:.0f}ms  conflict={body.get('is_conflict')}"
+            )
         else:
             logger.warning(f"Predict returned {r.status_code}: {r.text[:200]}")
     except Exception as exc:
@@ -130,6 +148,7 @@ def validate_api(
 
 
 # ─── Step 3: Run API integration tests ───────────────────────────────────────
+
 
 @step
 def run_api_tests(
@@ -146,24 +165,32 @@ def run_api_tests(
         return {"skipped": True, "reason": "API not reachable"}
 
     result = subprocess.run(
-        ["python", "-m", "pytest",
-         "tests/integration/test_api.py",
-         "-v", "--tb=short", "--no-header",
-         f"--base-url={api_health['api_url']}"],
-        capture_output=True, text=True, timeout=120,
+        [
+            "python",
+            "-m",
+            "pytest",
+            "tests/integration/test_api.py",
+            "-v",
+            "--tb=short",
+            "--no-header",
+            f"--base-url={api_health['api_url']}",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=120,
         env={**__import__("os").environ, "PYTHONPATH": "."},
     )
 
-    passed  = result.stdout.count(" PASSED")
-    failed  = result.stdout.count(" FAILED")
-    errors  = result.stdout.count(" ERROR")
-    total   = passed + failed + errors
+    passed = result.stdout.count(" PASSED")
+    failed = result.stdout.count(" FAILED")
+    errors = result.stdout.count(" ERROR")
+    total = passed + failed + errors
 
     test_results = {
         "passed": passed,
         "failed": failed,
         "errors": errors,
-        "total":  total,
+        "total": total,
         "pass_rate": passed / total if total > 0 else 0.0,
         "output": result.stdout[-2000:],
     }
@@ -175,10 +202,11 @@ def run_api_tests(
 
 # ─── Step 4: Register serving endpoint ───────────────────────────────────────
 
+
 @step
 def register_serving(
     model_config: dict,
-    api_health:   dict,
+    api_health: dict,
     test_results: dict,
 ) -> None:
     """
@@ -190,36 +218,47 @@ def register_serving(
 
     with mlflow.start_run(run_name="serving-registration"):
         # Model config
-        mlflow.log_params({
-            "serving_model":          model_config.get("model_name",          "gpt-4o-mini"),
-            "serving_config":         model_config.get("best_config",         "few_shot"),
-            "fine_tuned_model_id":    model_config.get("fine_tuned_model_id", "none"),
-            "api_url":                api_health.get("api_url",               "unknown"),
-        })
+        mlflow.log_params(
+            {
+                "serving_model": model_config.get("model_name", "gpt-4o-mini"),
+                "serving_config": model_config.get("best_config", "few_shot"),
+                "fine_tuned_model_id": model_config.get("fine_tuned_model_id", "none"),
+                "api_url": api_health.get("api_url", "unknown"),
+            }
+        )
 
         # Health metrics
-        mlflow.log_metrics({
-            "api_healthy":     int(api_health.get("health",  False)),
-            "predict_ok":      int(api_health.get("predict", False)),
-            "latency_ms":      api_health.get("latency_ms", 0) or 0,
-        })
+        mlflow.log_metrics(
+            {
+                "api_healthy": int(api_health.get("health", False)),
+                "predict_ok": int(api_health.get("predict", False)),
+                "latency_ms": api_health.get("latency_ms", 0) or 0,
+            }
+        )
 
         # Test results
         if not test_results.get("skipped"):
-            mlflow.log_metrics({
-                "integration_tests_passed":   test_results.get("passed",    0),
-                "integration_tests_failed":   test_results.get("failed",    0),
-                "integration_tests_total":    test_results.get("total",     0),
-                "integration_pass_rate":      test_results.get("pass_rate", 0),
-            })
+            mlflow.log_metrics(
+                {
+                    "integration_tests_passed": test_results.get("passed", 0),
+                    "integration_tests_failed": test_results.get("failed", 0),
+                    "integration_tests_total": test_results.get("total", 0),
+                    "integration_pass_rate": test_results.get("pass_rate", 0),
+                }
+            )
 
     logger.info("✅ Serving registration logged to MLflow")
     logger.info(f"   API URL:    {api_health.get('api_url')}")
-    logger.info(f"   Model:      {model_config.get('model_name')} ({model_config.get('best_config')})")
-    logger.info(f"   Tests:      {test_results.get('passed', '?')}/{test_results.get('total', '?')} passed")
+    logger.info(
+        f"   Model:      {model_config.get('model_name')} ({model_config.get('best_config')})"
+    )
+    logger.info(
+        f"   Tests:      {test_results.get('passed', '?')}/{test_results.get('total', '?')} passed"
+    )
 
 
 # ─── Pipeline definition ──────────────────────────────────────────────────────
+
 
 @pipeline(name="m5_serving_pipeline", enable_cache=False)
 def serving_pipeline(
@@ -237,7 +276,7 @@ def serving_pipeline(
     configuration in MLflow for traceability.
     """
     model_config = load_best_model()
-    api_health   = validate_api(model_config=model_config, api_url=api_url)
+    api_health = validate_api(model_config=model_config, api_url=api_url)
     test_results = run_api_tests(api_health=api_health)
     register_serving(
         model_config=model_config,
