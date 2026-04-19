@@ -71,16 +71,19 @@ upload("/tmp/hf_requirements.txt", "requirements.txt")
 # ── Source modules needed at runtime ─────────────────────────────────────────
 src_files = [
     # Models — uploaded to both src/models/ AND models/ for import compatibility
-    ("src/models/llm_model.py",                 "src/models/llm_model.py"),
-    ("src/models/llm_model.py",                 "models/llm_model.py"),
-    ("src/models/__init__.py",                  "src/models/__init__.py"),
-    ("src/models/__init__.py",                  "models/__init__.py"),
-    # PoC conflict detection (for visualization)
-    ("src/poc/conflict_detection_orig.py",      "src/poc/conflict_detection_orig.py"),
-    ("src/poc/visualization_orig.py",           "src/poc/visualization_orig.py"),
-    ("src/poc/__init__.py",                     "src/poc/__init__.py"),
+    ("src/models/llm_model.py",            "src/models/llm_model.py"),
+    ("src/models/llm_model.py",            "models/llm_model.py"),
+    ("src/models/__init__.py",             "src/models/__init__.py"),
+    ("src/models/__init__.py",             "models/__init__.py"),
+    # PoC — uploaded to src/poc/, poc/, AND root for maximum import compatibility
+    ("src/poc/conflict_detection_orig.py", "src/poc/conflict_detection_orig.py"),
+    ("src/poc/conflict_detection_orig.py", "poc/conflict_detection_orig.py"),
+    ("src/poc/visualization_orig.py",      "src/poc/visualization_orig.py"),
+    ("src/poc/visualization_orig.py",      "poc/visualization_orig.py"),
+    ("src/poc/__init__.py",                "src/poc/__init__.py"),
+    ("src/poc/__init__.py",                "poc/__init__.py"),
     # Package inits
-    ("src/__init__.py",                         "src/__init__.py"),
+    ("src/__init__.py",                    "src/__init__.py"),
 ]
 
 for local, remote in src_files:
