@@ -3,9 +3,10 @@
 > **CSC5382 – AI for Digital Transformation**
 > Production-ready ML system leveraging LLMs and generative AI for intelligent, safety-aware vehicle conflict resolution at urban intersections.
 
-[![CI/CD](https://github.com/your-org/llm-traffic-intersection/actions/workflows/ci_cd.yml/badge.svg)](https://github.com/your-org/llm-traffic-intersection/actions)
+[![CI/CD](https://github.com/NiemaAM/llm-traffic-intersection/actions/workflows/ci_cd.yml/badge.svg)](https://github.com/NiemaAM/llm-traffic-intersection/actions)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![HuggingFace Space](https://img.shields.io/badge/HuggingFace-Space-yellow)](https://huggingface.co/spaces/NiemaAM/traffic-intersection)
 
 ---
 
@@ -39,9 +40,9 @@ llm-traffic-intersection/
 ├── .dvc/                    # DVC configuration
 ├── configs/                 # Pipeline configs
 ├── data/
-│   ├── raw/                 # Raw generated data
+│   ├── raw/                 # Raw generated data (DVC tracked)
 │   ├── interim/             # Intermediate data
-│   ├── processed/           # Feature-engineered data
+│   ├── processed/           # Feature-engineered data + fine-tuning JSONL
 │   ├── external/            # Intersection layout JSON
 │   └── feature_store/       # Feast feature store
 ├── deployment/
@@ -58,6 +59,7 @@ llm-traffic-intersection/
 │   └── references.bib       # BibTeX references
 ├── reports/                 # Evaluation reports, drift reports
 ├── scripts/
+│   ├── deploy_hf.py         # Manual HuggingFace Space deployment
 │   └── run_all_pipelines.py # Master pipeline runner
 ├── src/
 │   ├── poc/
@@ -143,10 +145,10 @@ Set your values. **Important `.env` formatting rules** — inline comments break
 ```bash
 # ✅ CORRECT — comment on its own line
 # Optional fine-tuned model ID
-FINE_TUNED_MODEL_ID=
+FINE_TUNED_MODEL_ID=ft:gpt-4o-mini-2024-07-18:personal::DW8yoWD9
 
 # ❌ WRONG — comment on same line becomes part of the value
-FINE_TUNED_MODEL_ID=     # Optional: your fine-tuned model ID (ft:gpt-4o-mini:...)
+FINE_TUNED_MODEL_ID=ft:gpt-4o-mini-2024-07-18:personal::DW8yoWD9  # fine-tuned model
 ```
 
 Correct `.env` content:
@@ -154,8 +156,8 @@ Correct `.env` content:
 ```bash
 OPENAI_API_KEY=sk-proj-...your-full-key...
 
-# Optional: set after fine-tuning completes
-FINE_TUNED_MODEL_ID=
+# Fine-tuned model ID (Masri et al. format, evaluated at 78.3% accuracy)
+FINE_TUNED_MODEL_ID=ft:gpt-4o-mini-2024-07-18:personal::DW8yoWD9
 
 MODEL_NAME=gpt-4o-mini
 FEW_SHOT=true
@@ -165,7 +167,7 @@ API_URL=http://localhost:8000
 PORT=8000
 
 HF_TOKEN=hf_...
-HF_SPACE=your-username/traffic-intersection
+HF_SPACE=NiemaAM/traffic-intersection
 
 GRAFANA_PASSWORD=admin
 ```
@@ -221,25 +223,16 @@ git commit -m "Track data with DVC"
 
 ```bash
 zenml init
-```
-
-If you see `ERROR: failed to initiate DVC - /home/.../.dvc is ignored`, it means the `.gitignore` fix above was not applied yet.
-
-#### Start the ZenML dashboard (optional)
-
-```bash
-pip install "zenml[server]"    # if not already installed via requirements.txt
 zenml login --local
 # Opens dashboard at http://127.0.0.1:8237
 # Login: username=default, password=(empty)
 ```
 
 > **Note:** `zenml up` is deprecated in ZenML 0.94+. Use `zenml login --local` instead.
-> The dashboard runs in the foreground — open a second terminal tab for other commands.
 
 ### Step 8 — Install Docker (via Docker Desktop for Windows)
 
-Docker Desktop is the recommended approach for WSL2. The `get.docker.com` script shows a 20-second warning and may fail with package conflicts.
+Docker Desktop is the recommended approach for WSL2.
 
 1. Download **Docker Desktop for Windows** from https://www.docker.com/products/docker-desktop/
 2. During install, ensure **"Use WSL 2 based engine"** is checked
@@ -258,6 +251,26 @@ PYTHONPATH=. pytest tests/ -v
 # Expected: 63 passed
 ```
 
+### Step 10 — Start services (always use SQLite backend for MLflow)
+
+```bash
+# MLflow (persistent — always use this command)
+mlflow ui --port 5000 --backend-store-uri sqlite:///mlflow.db &
+
+# FastAPI (load .env first)
+export $(grep -v '^#' .env | grep -v '^$' | xargs)
+PYTHONPATH=. uvicorn src.api.app:app --port 8000 &
+
+# ZenML dashboard
+zenml login --local   # → http://127.0.0.1:8237
+```
+
+> **Important:** Always start MLflow with `--backend-store-uri sqlite:///mlflow.db` to persist runs across restarts. To make this the default permanently:
+> ```bash
+> mkdir -p ~/.mlflow
+> echo "backend-store-uri: sqlite:////home/$USER/llm-traffic-intersection/mlflow.db" > ~/.mlflow/config.yaml
+> ```
+
 ---
 
 ## ⚡ Quick Start
@@ -265,18 +278,28 @@ PYTHONPATH=. pytest tests/ -v
 ```bash
 # After setup above:
 source .venv/bin/activate
+export $(grep -v '^#' .env | grep -v '^$' | xargs)
 
 # Milestone 2 PoC (rule-based, no API key needed)
 PYTHONPATH=. streamlit run src/poc/poc_app.py --server.port 8503
 
-# Run all pipelines (M3→M6)
-PYTHONPATH=. python scripts/run_all_pipelines.py
+# Generate dataset
+PYTHONPATH=. python src/data/generate_data.py --num-records 1000 \
+  --output data/raw/generated_dataset.csv --seed 42
 
-# Production API
-PYTHONPATH=. uvicorn src.api.app:app --reload --port 8000
+# Run M3 data pipeline
+PYTHONPATH=. python src/pipelines/data_pipeline.py
 
-# Full Docker stack (M5)
-cd deployment/docker && docker compose up
+# Run M4 training pipeline (evaluation only, uses existing fine-tuned model)
+MLFLOW_TRACKING_URI=http://localhost:5000 \
+PYTHONPATH=. python src/pipelines/training_pipeline.py --max-scenarios 60
+
+# Run M5 serving pipeline
+MLFLOW_TRACKING_URI=http://localhost:5000 \
+PYTHONPATH=. python src/pipelines/serving_pipeline.py
+
+# Production Streamlit UI
+PYTHONPATH=. streamlit run src/api/streamlit_app.py --server.port 8501
 ```
 
 ---
@@ -526,25 +549,44 @@ Build a production-grade, reproducible data pipeline ensuring data quality, trac
 ### Steps Followed
 
 1. Schema definition — 14 typed columns with constraints.
-2. Data generation — parametric synthetic scenario generator.
+2. Data generation — parametric synthetic scenario generator (1,000 scenarios, seed=42, 54.4% conflict rate).
 3. Validation — pandas validator + Great Expectations HTML report.
 4. Feature engineering — 6 custom scikit-learn transformers.
 5. DVC versioning — initialized after fixing `.gitignore` (see [Environment Setup](#-environment-setup-ubuntu--wsl2)).
 6. Feast feature store — local SQLite provider.
-7. ZenML pipeline integration.
+7. ZenML pipeline integration — 5 steps, all green.
 
 ### How to Use
 
 ```bash
-# Notebook (interactive)
-jupyter notebook notebooks/milestone3_data_pipeline.ipynb
+# Generate dataset
+PYTHONPATH=. python src/data/generate_data.py \
+  --num-records 1000 \
+  --output data/raw/generated_dataset.csv \
+  --seed 42
 
-# Pipeline only
+# Validate data
+PYTHONPATH=. python src/data/validate_data.py
+
+# Run full data pipeline
 PYTHONPATH=. python src/pipelines/data_pipeline.py
-
-# Or via master runner
-PYTHONPATH=. python scripts/run_all_pipelines.py --milestone 3
 ```
+
+### ZenML Pipeline Results
+
+ZenML pipeline `m3_data_pipeline` — **5/5 steps completed, 0 failed**:
+
+```
+ingest_data → validate_data → engineer_features → version_data → push_to_feature_store
+```
+
+| Step | Duration | Status |
+|---|---|---|
+| `ingest_data` | 2s | ✅ |
+| `validate_data` | 4s | ✅ |
+| `engineer_features` | 1s | ✅ |
+| `version_data` | 4s | ✅ |
+| `push_to_feature_store` | 4s | ✅ |
 
 ---
 
@@ -576,7 +618,7 @@ Feast with local SQLite provider. Two feature views: `vehicle_intersection_featu
 
 ### 3.5 Setup of Data Pipeline within the Larger ML Pipeline / MLOps Platform
 
-ZenML pipeline `m3_data_pipeline`:
+ZenML pipeline `traffic_data_pipeline` (5 steps):
 ```
 ingest_data → validate_data → engineer_features → version_data → push_to_feature_store
 ```
@@ -610,26 +652,26 @@ Define, train, evaluate, and version the LLM conflict detector with reproducible
 ### Steps Followed
 
 1. Implemented `IntersectionLLM` wrapper (zero-shot, few-shot, fine-tuned modes).
-2. Designed system prompt, few-shot examples, JSON output schema.
-3. Built JSONL fine-tuning dataset export.
-4. Integrated MLflow for all experiment tracking.
-5. Built 7-step ZenML training pipeline including real `train_model` step.
-6. Added CodeCarbon energy measurement.
+2. Designed system prompt following Masri et al. natural language format (input → yes/no).
+3. Built JSONL fine-tuning dataset export (285 training examples, 50/50 balanced).
+4. Fine-tuned `GPT-4o-mini` via OpenAI API — model ID: `ft:gpt-4o-mini-2024-07-18:personal::DW8yoWD9`.
+5. Integrated MLflow with persistent SQLite backend (`mlflow.db`).
+6. Built 7-step ZenML training pipeline including real `train_model` step.
+7. Added CodeCarbon energy measurement.
 
 ### How to Use
 
 ```bash
-# Notebook (interactive, recommended)
-jupyter notebook notebooks/milestone4_model_development.ipynb
+# Start MLflow first (always with SQLite backend)
+mlflow ui --port 5000 --backend-store-uri sqlite:///mlflow.db &
 
-# Pipeline (skip fine-tuning, evaluation only)
-PYTHONPATH=. python scripts/run_all_pipelines.py --milestone 4
+# Run evaluation pipeline (uses existing fine-tuned model)
+export $(grep -v '^#' .env | grep -v '^$' | xargs)
+MLFLOW_TRACKING_URI=http://localhost:5000 \
+PYTHONPATH=. python src/pipelines/training_pipeline.py --max-scenarios 60
 
-# Pipeline with fine-tuning enabled (~$1-2, 10-30 min)
-PYTHONPATH=. python scripts/run_all_pipelines.py --milestone 4 --train
-
-# View results
-mlflow ui --port 5000   # or open http://localhost:5000 if Docker stack running
+# View MLflow results
+# Open: http://localhost:5000
 ```
 
 ---
@@ -642,13 +684,13 @@ Cookiecutter Data Science layout. Single-responsibility modules: `llm_model.py` 
 
 ### 4.2 Code Versioning
 
-GitHub Flow: `main` ← `develop` ← feature branches. All PRs gated by CI. Releases tagged `v1.0` through `v6.0`.
+GitHub Flow: `main` ← `develop` ← feature branches. All PRs gated by CI. Releases tagged `v1.0` through `v5.0`.
 
 ---
 
 ### 4.3 Experiment Tracking and Model Versioning
 
-ZenML pipeline `m4_training_pipeline` (7 steps):
+ZenML pipeline `m4_training_pipeline` — **7/7 steps completed, 0 failed**:
 
 ```
 prepare_finetune_data
@@ -660,22 +702,40 @@ prepare_finetune_data
         └──► train_model ──► evaluate_finetuned ─┘
 ```
 
-The `train_model` step is the **`model.fit()` equivalent** for LLMs: uploads the JSONL file, starts the OpenAI fine-tuning job, polls every 30 seconds until complete, and returns the resulting model ID.
-
-MLflow runs logged:
-
-| Run | Params | Metrics |
+| Step | Duration | Status |
 |---|---|---|
-| `zero-shot-baseline` | model, few_shot=False | accuracy, F1, recall, FNR, latency |
-| `few-shot-eval` | model, few_shot=True | accuracy, F1, recall, FNR, latency |
-| `fine-tuning-job` | base_model, n_epochs, job_id | training_duration_s |
-| `fine-tuned-eval` | fine_tuned_model_id | accuracy, F1, recall, FNR, latency |
-| `model-comparison` | best_config, best_f1 | all variant metrics |
-| `energy-measurement` | best_config | co2_kg, co2_g |
+| `prepare_finetune_data` | 0s | ✅ |
+| `train_model` | 0s (skipped, uses existing) | ✅ |
+| `evaluate_baseline` | ~2m 30s | ✅ |
+| `evaluate_few_shot` | ~2m 9s | ✅ |
+| `evaluate_finetuned` | ~43s | ✅ |
+| `compare_and_register` | 1s | ✅ |
+| `measure_energy` | 8s | ✅ |
+
+MLflow experiment: `traffic-intersection-llm`
+
+| MLflow Run | Key Params | Key Metrics |
+|---|---|---|
+| `zero-shot-baseline` | model=gpt-4o-mini, few_shot=False | accuracy, F1, recall, FNR, latency |
+| `few-shot-eval` | model=gpt-4o-mini, few_shot=True | accuracy, F1, recall, FNR, latency |
+| `fine-tuned-eval` | model=ft:gpt-4o-mini::DW8yoWD9, fine_tuned=True | accuracy, F1, recall, FNR, latency |
+| `model-comparison` | best_config=fine_tuned, best_f1=0.780 | all variant F1s |
+| `energy-measurement` | best_config=fine_tuned | co2_kg, co2_g |
 
 ---
 
 ### 4.4 Integration of Model Training and Offline Evaluation
+
+#### Evaluation Results (60 scenarios, balanced dataset)
+
+| Variant | Accuracy | Precision | Recall | F1 | FNR | Avg Latency |
+|---|---|---|---|---|---|---|
+| **Zero-shot** | 0.6500 | 0.6800 | 0.5667 | 0.6182 | 0.4333 | 2.26 s |
+| **Few-shot** | 0.6000 | 0.7500 | 0.3000 | 0.4286 | 0.7000 | 2.14 s |
+| **Fine-tuned** (`DW8yoWD9`) | **0.7833** | **0.7931** | **0.7667** | **0.7797** | **0.2333** | **1.63 s** |
+
+> **Best model:** Fine-tuned `ft:gpt-4o-mini-2024-07-18:personal::DW8yoWD9`
+> Fine-tuning approach: Masri et al. natural language format — vehicle descriptions as text input, `yes`/`no` output, 285 examples, 50/50 balanced split.
 
 The `compare_and_register` step picks the best variant by F1 score, logs a comparison table to MLflow as a JSON artifact (`reports/model_comparison.json`), and records the fine-tuned model ID for use in Milestone 5.
 
@@ -683,7 +743,13 @@ The `compare_and_register` step picks the best variant by F1 score, logs a compa
 
 ### 4.5 Energy Efficiency Measurement
 
-CodeCarbon tracks CO₂ emissions per pipeline run. Results logged to MLflow `energy-measurement` run as `co2_kg` and `co2_g` metrics.
+CodeCarbon tracks CO₂ emissions per pipeline run. Results logged to MLflow `energy-measurement` run:
+
+| Metric | Value |
+|---|---|
+| `co2_kg` | 0.00000208 kg |
+| `co2_g` | 0.00208 g |
+| `best_config` | fine_tuned |
 
 ---
 
@@ -693,7 +759,7 @@ CodeCarbon tracks CO₂ emissions per pipeline run. Results logged to MLflow `en
 
 ### Introduction
 
-Packages the LLM conflict resolver into a production-ready containerised web service with automated CI/CD.
+Packages the LLM conflict resolver into a production-ready containerised web service with automated CI/CD, deployed to HuggingFace Spaces and Docker.
 
 ### Goal of this Milestone
 
@@ -705,47 +771,58 @@ Ship the model as a reliable, containerised, monitored web service accessible vi
 |---|---|---|
 | **FastAPI** | REST API framework | `>=0.111` |
 | **Uvicorn** | ASGI server | `>=0.29` |
-| **Streamlit** | Front-end client | `>=1.35` |
+| **Streamlit** | Production front-end | `>=1.35` |
 | **Docker + Compose** | Containerisation | Latest |
 | **GitHub Actions** | CI/CD pipeline | — |
-| **Hugging Face Spaces** | Cloud hosting | — |
-| **Prometheus + Grafana** | Infrastructure monitoring | Latest |
+| **HuggingFace Spaces** | Cloud hosting | — |
+| **ZenML** | Serving pipeline orchestration | `>=0.60` |
+
+### Live Deployments
+
+| Service | URL |
+|---|---|
+| **HuggingFace Space** | https://huggingface.co/spaces/NiemaAM/traffic-intersection |
+| **Docker Image** | `ghcr.io/niemaam/llm-traffic-intersection/traffic-api:main` |
+| **GitHub Repo** | https://github.com/NiemaAM/llm-traffic-intersection |
 
 ### Steps Followed
 
-1. Implemented FastAPI with `/predict`, `/predict/batch`, `/health`.
-2. Built production Streamlit front-end (same style as PoC, calls FastAPI).
+1. Implemented FastAPI with `/predict`, `/health` endpoints and Pydantic V2 validation.
+2. Built production Streamlit front-end with embedded visualization (no import path issues on HF Space).
 3. Multi-stage Dockerfile (builder + slim production image, non-root user).
-4. docker-compose.yml with 5 services.
-5. GitHub Actions CI/CD.
-6. ZenML serving pipeline for API validation and test registration.
+4. GitHub Actions CI/CD — 5 jobs all green.
+5. Deployed to HuggingFace Spaces via `scripts/deploy_hf.py`.
+6. ZenML serving pipeline — 4 steps all green, 12/12 integration tests passed.
 
 ### How to Use
 
 ```bash
-# Local development
-PYTHONPATH=. uvicorn src.api.app:app --reload --port 8000
+# Load environment variables
+export $(grep -v '^#' .env | grep -v '^$' | xargs)
+
+# Start FastAPI
+PYTHONPATH=. uvicorn src.api.app:app --port 8000 &
+
+# Test the API
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{"vehicles":[
+    {"vehicle_id":"V001","lane":1,"speed":50,"distance_to_intersection":100,"direction":"north","destination":"F"},
+    {"vehicle_id":"V002","lane":3,"speed":50,"distance_to_intersection":100,"direction":"east","destination":"B"}
+  ]}'
+
+# Production Streamlit UI
 PYTHONPATH=. streamlit run src/api/streamlit_app.py --server.port 8501
 
-# Docker Compose (full stack)
-cd deployment/docker
-# Fix: remove inline comments from .env before running
-docker compose up --build
-
-# Ports (fix conflicts by editing docker-compose.yml):
-#   API:        http://localhost:8000  (docs: /docs)
-#   Streamlit:  http://localhost:8501
-#   MLflow:     http://localhost:5000
-#   Grafana:    http://localhost:3001  (login: admin/admin)
-#   Prometheus: http://localhost:9091
-
 # Run ZenML serving pipeline
-PYTHONPATH=. python scripts/run_all_pipelines.py --milestone 5
-```
+MLFLOW_TRACKING_URI=http://localhost:5000 \
+PYTHONPATH=. python src/pipelines/serving_pipeline.py
 
-**Port conflict fixes applied during setup:**
-- Port 3000 was occupied by a pre-existing Grafana container → changed to `3001:3000`
-- Port 9090 was occupied → changed to `9091:9090`
+# Deploy to HuggingFace manually
+export HF_TOKEN=hf_...
+export HF_SPACE=NiemaAM/traffic-intersection
+python scripts/deploy_hf.py
+```
 
 ---
 
@@ -759,66 +836,111 @@ PYTHONPATH=. python scripts/run_all_pipelines.py --milestone 5
                        │ HTTP           │ HTTP
                        ▼                ▼
 ┌─────────────────────────────────────────────────────────┐
-│   FastAPI (8000) + Uvicorn (2 workers)                  │
-│   POST /predict  ·  POST /predict/batch  ·  GET /health │
+│   FastAPI (8000) + Uvicorn                              │
+│   POST /predict  ·  GET /health                         │
 │              ↓                                          │
-│       IntersectionLLM  (few-shot / fine-tuned)         │
+│       IntersectionLLM  (fine-tuned Masri format)        │
+│       → yes/no → rule-based enrichment                  │
 └───────────────────────┬─────────────────────────────────┘
                         │ HTTPS
                         ▼
               ┌─────────────────┐
               │  OpenAI API     │
-              │  gpt-4o-mini    │
+              │  ft:gpt-4o-mini │
+              │  ::DW8yoWD9     │
               └─────────────────┘
 ┌─────────────────────────────────────────────────────────┐
-│  MLOps: MLflow (5000) · Prometheus (9091) · Grafana (3001) · ZenML │
+│  MLOps: MLflow (5000) · ZenML (8237)                    │
 └─────────────────────────────────────────────────────────┘
 ```
 
-**Serving mode:** On-demand (request-response) at `/predict`; batch at `/predict/batch`.
+**Serving mode:** On-demand (request-response) at `/predict`.
 
 ---
 
 ### 5.2 Application Development
 
-**FastAPI** (`src/api/app.py`): Singleton `IntersectionLLM` via `get_llm()`, Pydantic V2 request/response validation, latency measurement, batch endpoint.
+**FastAPI** (`src/api/app.py`): Singleton `IntersectionLLM` via `get_llm()`, Pydantic V2 request/response validation, latency measurement in ms.
 
-**Streamlit front-end** (`src/api/streamlit_app.py`): Same look and feel as the Milestone 2 PoC — preset scenarios, vehicle editor, live JSON panel, conflict results dashboard, plus a live API test runner that calls `/predict` and `/health` directly.
+**Streamlit front-end** (`src/api/streamlit_app.py`): All visualization and conflict detection code embedded directly (no external imports needed on HF Space). Features: preset scenarios, vehicle editor with stable `vehicle_id` keys, live JSON panel, conflict results dashboard, animated Problem View + Solution View tabs (appear after analysis).
 
-**Key difference from M2 PoC:** The production Streamlit app calls the **FastAPI service** over HTTP rather than running inference locally. This means it works even from a mobile browser or a different machine.
+**Dual-mode operation:** Calls FastAPI when available; falls back to direct LLM inference (for HF Space).
 
 ---
 
 ### 5.3 Integration and Deployment
 
-**Multi-stage Dockerfile** → non-root user (`appuser`), health check via HTTP probe, minimal image size.
+**Multi-stage Dockerfile** → non-root user (`appuser`), health check via HTTP probe.
 
-**docker-compose.yml fixes applied:**
-```yaml
-# Fix port conflicts (change left-side port only; right-side stays internal)
-prometheus:
-  ports:
-    - "9091:9090"    # was 9090:9090 — conflicted with existing prometheus container
-grafana:
-  ports:
-    - "3001:3000"    # was 3000:3000 — conflicted with existing grafana container
+**CI/CD Pipeline** (`.github/workflows/ci_cd.yml`) — **all 5 jobs green** on every push:
 
-# Fix: remove "version:" key (obsolete in Compose v2, causes warning)
-# Remove the line: version: "3.9"
-```
+| Job | Status |
+|---|---|
+| Lint & Format Check | ✅ |
+| Unit & Integration Tests | ✅ |
+| Run Data Pipeline | ✅ |
+| Build & Push Docker Image | ✅ |
+| Deploy Streamlit to HuggingFace | ✅ |
 
-**CI/CD Pipeline** (`.github/workflows/ci_cd.yml`): lint → tests → data pipeline → Docker push → HF deploy.
+**HuggingFace Space Secrets set:** `OPENAI_API_KEY`, `FINE_TUNED_MODEL_ID`, `MODEL_NAME`, `FEW_SHOT`
 
 ---
 
 ### 5.4 Model Serving
 
-API key and model name are injected via environment variables (`OPENAI_API_KEY`, `MODEL_NAME`) set in `docker-compose.yml` from the `.env` file. The `IntersectionLLM` singleton is created once at startup and reused across requests.
+#### ZenML Serving Pipeline Results
 
-**Troubleshooting:** If the API returns `invalid model ID`, check:
-1. `FINE_TUNED_MODEL_ID` in `.env` must be **completely empty** (no inline comment)
-2. Test the key directly: `docker exec traffic_api python3 -c "import openai, os; client = openai.OpenAI(api_key=os.environ['OPENAI_API_KEY']); print(client.models.list().data[0].id)"`
-3. If you see `429 insufficient_quota` → add credits at https://platform.openai.com/settings/billing
+ZenML pipeline `m5_serving_pipeline` — **4/4 steps completed, 0 failed**:
+
+```
+load_best_model → validate_api → run_api_tests → register_serving
+```
+
+| Step | Duration | Status |
+|---|---|---|
+| `load_best_model` | 1s | ✅ |
+| `validate_api` | 1s — Health ✅, Predict ✅ (1041ms) | ✅ |
+| `run_api_tests` | 7s — **12/12 passed** | ✅ |
+| `register_serving` | 1s | ✅ |
+
+#### MLflow `serving-registration` Run Metrics
+
+| Metric | Value |
+|---|---|
+| `latency_ms` | 1041.4 ms |
+| `integration_tests_passed` | 12 |
+| `integration_tests_failed` | 0 |
+| `integration_tests_total` | 12 |
+| `integration_pass_rate` | 1.0 |
+
+#### FastAPI Endpoints
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/health` | GET | Health check — returns model name and status |
+| `/predict` | POST | Analyze intersection scenario, return conflict decisions |
+| `/docs` | GET | Swagger UI (OpenAPI 3.1) |
+
+#### Fine-Tuned Model Performance (deployed)
+
+| Metric | Value |
+|---|---|
+| Accuracy | 78.33% |
+| Precision | 79.31% |
+| Recall | 76.67% |
+| F1 Score | 77.97% |
+| FNR | 23.33% |
+| Avg Latency | 1.63 s |
+| Error Rate | 0.00% |
+
+---
+
+### 5.5 Production UI Screenshots
+
+The live HuggingFace Space features:
+- **Vehicle Editor**: add/edit/delete vehicles with stable IDs, live JSON sync
+- **Analysis Results**: conflict status, control decisions, priority table, waiting times
+- **Intersection Visualization**: animated Problem View (conflicts highlighted) + Solution View (wait times applied), shown after clicking Analyze
 
 ---
 
@@ -861,14 +983,12 @@ Ensure the deployed model remains safe, unbiased, and performant over time.
 ### How to Use
 
 ```bash
+# Start MLflow
+mlflow ui --port 5000 --backend-store-uri sqlite:///mlflow.db &
+
 # Run monitoring pipeline
-PYTHONPATH=. python scripts/run_all_pipelines.py --milestone 6
-
-# Run all pipelines
-PYTHONPATH=. python scripts/run_all_pipelines.py
-
-# Quick mode (fewer API calls)
-PYTHONPATH=. python scripts/run_all_pipelines.py --quick
+MLFLOW_TRACKING_URI=http://localhost:5000 \
+PYTHONPATH=. python src/pipelines/monitoring_pipeline.py
 
 # View drift report
 open reports/drift_report.html
@@ -936,7 +1056,7 @@ MIT License – see [LICENSE](LICENSE) for details.
 - [2] Li et al. (2025) — LLM-TrafficBrain
 - [3] Lai et al. (2025) — LLMLight / LightGPT
 - [4] Wang et al. (2025) — LLM-DCTSC
-- Original project: [NiemaAM/LLM-Driven-Agents-for-Traffic-Signal-Optimization](https://github.com/NiemaAM/LLM-Driven-Agents-for-Traffic-Signal-Optimization)
-- M4 Inspiration: [Ayman-AITACHOUR/PseudoCodeRAG-Translator](https://github.com/Ayman-AITACHOUR/PseudoCodeRAG-Translator)
+- Project GitHub: [NiemaAM/llm-traffic-intersection](https://github.com/NiemaAM/llm-traffic-intersection)
+- HuggingFace Space: [NiemaAM/traffic-intersection](https://huggingface.co/spaces/NiemaAM/traffic-intersection)
 
 Full BibTeX: [`references/references.bib`](references/references.bib)
