@@ -13,7 +13,6 @@ from typing import Any
 
 import pandas as pd
 
-
 # ─── Prompt templates ─────────────────────────────────────────────────────────
 
 SYSTEM_PROMPT = """You are an intelligent traffic intersection controller.
@@ -222,9 +221,9 @@ def _build_full_decision(vehicles: list, is_conflict: bool) -> dict:
 
     try:
         from conflict_detection_orig import (
+            detect_conflicts,
             parse_intersection_layout,
             parse_vehicles,
-            detect_conflicts,
         )
 
         LAYOUT_DATA = {
