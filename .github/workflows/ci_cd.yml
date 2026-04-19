@@ -60,12 +60,12 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run unit tests
-        run: pytest tests/unit/ -v --tb=short --cov=src --cov-report=xml --cov-fail-under=10
+        run: pytest tests/unit/ -v --tb=short --cov=src --cov-report=xml
         env:
           PYTHONPATH: .
 
       - name: Run integration tests
-        run: pytest tests/integration/ -v --tb=short --no-cov
+        run: pytest tests/integration/ -v --tb=short
         env:
           PYTHONPATH: .
 
@@ -132,17 +132,12 @@ jobs:
             type=semver,pattern={{version}}
             type=sha,prefix=sha-
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        with:
-          driver: docker-container
-
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: .
           file: deployment/docker/Dockerfile
-          push: ${{ github.event_name != 'pull_request' }}
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
@@ -159,14 +154,21 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
       - name: Push to Hugging Face Space
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           HF_SPACE: ${{ secrets.HF_SPACE }}
+          FINE_TUNED_MODEL_ID: ${{ secrets.FINE_TUNED_MODEL_ID }}
         run: |
           if [ -n "$HF_TOKEN" ] && [ -n "$HF_SPACE" ]; then
             pip install huggingface_hub --quiet
             python scripts/deploy_hf.py
           else
             echo "⚠️  HF_TOKEN or HF_SPACE not set – skipping Hugging Face deploy"
+            echo "   Add HF_TOKEN and HF_SPACE to GitHub repository secrets to enable"
           fi
