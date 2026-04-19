@@ -40,47 +40,123 @@ LAYOUT_DATA = {
 }
 
 LANE_DIRECTION = {
-    "1": "north", "2": "north",
-    "3": "east", "4": "east",
-    "5": "south", "6": "south",
-    "7": "west", "8": "west",
+    "1": "north",
+    "2": "north",
+    "3": "east",
+    "4": "east",
+    "5": "south",
+    "6": "south",
+    "7": "west",
+    "8": "west",
 }
 
 DEFAULT_SCENARIO = [
-    {"vehicle_id": "V001", "lane": 1, "speed": 50,
-     "distance_to_intersection": 100, "direction": "north", "destination": "F"},
-    {"vehicle_id": "V002", "lane": 3, "speed": 50,
-     "distance_to_intersection": 100, "direction": "east", "destination": "B"},
+    {
+        "vehicle_id": "V001",
+        "lane": 1,
+        "speed": 50,
+        "distance_to_intersection": 100,
+        "direction": "north",
+        "destination": "F",
+    },
+    {
+        "vehicle_id": "V002",
+        "lane": 3,
+        "speed": 50,
+        "distance_to_intersection": 100,
+        "direction": "east",
+        "destination": "B",
+    },
 ]
 
 PRESET_SCENARIOS = {
     "⚠️ Classic Conflict (N↔E)": [
-        {"vehicle_id": "V001", "lane": 1, "speed": 50,
-         "distance_to_intersection": 100, "direction": "north", "destination": "F"},
-        {"vehicle_id": "V002", "lane": 3, "speed": 50,
-         "distance_to_intersection": 100, "direction": "east", "destination": "B"},
+        {
+            "vehicle_id": "V001",
+            "lane": 1,
+            "speed": 50,
+            "distance_to_intersection": 100,
+            "direction": "north",
+            "destination": "F",
+        },
+        {
+            "vehicle_id": "V002",
+            "lane": 3,
+            "speed": 50,
+            "distance_to_intersection": 100,
+            "direction": "east",
+            "destination": "B",
+        },
     ],
     "🚨 Head-on (N↔S)": [
-        {"vehicle_id": "V003", "lane": 1, "speed": 70,
-         "distance_to_intersection": 110, "direction": "north", "destination": "H"},
-        {"vehicle_id": "V004", "lane": 5, "speed": 65,
-         "distance_to_intersection": 105, "direction": "south", "destination": "D"},
+        {
+            "vehicle_id": "V003",
+            "lane": 1,
+            "speed": 70,
+            "distance_to_intersection": 110,
+            "direction": "north",
+            "destination": "H",
+        },
+        {
+            "vehicle_id": "V004",
+            "lane": 5,
+            "speed": 65,
+            "distance_to_intersection": 105,
+            "direction": "south",
+            "destination": "D",
+        },
     ],
     "🟢 No Conflict (far arrival gap)": [
-        {"vehicle_id": "V005", "lane": 1, "speed": 50,
-         "distance_to_intersection": 50, "direction": "north", "destination": "F"},
-        {"vehicle_id": "V006", "lane": 3, "speed": 20,
-         "distance_to_intersection": 500, "direction": "east", "destination": "B"},
+        {
+            "vehicle_id": "V005",
+            "lane": 1,
+            "speed": 50,
+            "distance_to_intersection": 50,
+            "direction": "north",
+            "destination": "F",
+        },
+        {
+            "vehicle_id": "V006",
+            "lane": 3,
+            "speed": 20,
+            "distance_to_intersection": 500,
+            "direction": "east",
+            "destination": "B",
+        },
     ],
     "🟠 Multi-vehicle (4 cars)": [
-        {"vehicle_id": "V007", "lane": 1, "speed": 60,
-         "distance_to_intersection": 100, "direction": "north", "destination": "F"},
-        {"vehicle_id": "V008", "lane": 5, "speed": 55,
-         "distance_to_intersection": 110, "direction": "south", "destination": "D"},
-        {"vehicle_id": "V009", "lane": 3, "speed": 65,
-         "distance_to_intersection": 95, "direction": "east", "destination": "B"},
-        {"vehicle_id": "V010", "lane": 7, "speed": 50,
-         "distance_to_intersection": 200, "direction": "west", "destination": "F"},
+        {
+            "vehicle_id": "V007",
+            "lane": 1,
+            "speed": 60,
+            "distance_to_intersection": 100,
+            "direction": "north",
+            "destination": "F",
+        },
+        {
+            "vehicle_id": "V008",
+            "lane": 5,
+            "speed": 55,
+            "distance_to_intersection": 110,
+            "direction": "south",
+            "destination": "D",
+        },
+        {
+            "vehicle_id": "V009",
+            "lane": 3,
+            "speed": 65,
+            "distance_to_intersection": 95,
+            "direction": "east",
+            "destination": "B",
+        },
+        {
+            "vehicle_id": "V010",
+            "lane": 7,
+            "speed": 50,
+            "distance_to_intersection": 200,
+            "direction": "west",
+            "destination": "F",
+        },
     ],
 }
 
@@ -266,9 +342,7 @@ with st.sidebar:
     # Layout reference
     st.subheader("Layout Reference")
     for direction, lanes in LAYOUT_DATA.items():
-        lane_str = "  |  ".join(
-            f"Lane {ln} → {'/'.join(dests)}" for ln, dests in lanes.items()
-        )
+        lane_str = "  |  ".join(f"Lane {ln} → {'/'.join(dests)}" for ln, dests in lanes.items())
         st.caption(f"**{direction.capitalize()}:** {lane_str}")
 
     st.divider()
@@ -309,25 +383,31 @@ with c3:
             used.add(lane)
             direction = LANE_DIRECTION[str(lane)]
             dests = LAYOUT_DATA[direction][str(lane)]
-            vlist.append({
-                "vehicle_id": f"V{random.randint(100, 999)}",
-                "lane": lane,
-                "speed": round(random.uniform(20, 80), 1),
-                "distance_to_intersection": round(random.uniform(50, 400), 1),
-                "direction": direction,
-                "destination": random.choice(dests),
-            })
+            vlist.append(
+                {
+                    "vehicle_id": f"V{random.randint(100, 999)}",
+                    "lane": lane,
+                    "speed": round(random.uniform(20, 80), 1),
+                    "distance_to_intersection": round(random.uniform(50, 400), 1),
+                    "direction": direction,
+                    "destination": random.choice(dests),
+                }
+            )
         st.session_state.vehicles = vlist
         sync_json()
         st.rerun()
 with c4:
     if st.button("➕ Add", use_container_width=True):
-        st.session_state.vehicles.append({
-            "vehicle_id": f"V{random.randint(100, 999)}",
-            "lane": 1, "speed": 50.0,
-            "distance_to_intersection": 100.0,
-            "direction": "north", "destination": "F",
-        })
+        st.session_state.vehicles.append(
+            {
+                "vehicle_id": f"V{random.randint(100, 999)}",
+                "lane": 1,
+                "speed": 50.0,
+                "distance_to_intersection": 100.0,
+                "direction": "north",
+                "destination": "F",
+            }
+        )
         sync_json()
         st.rerun()
 with c5:
@@ -361,12 +441,22 @@ with editor_col:
                 "ln", 1, 8, int(v["lane"]), key=f"ln_{i}", label_visibility="collapsed"
             )
             v["speed"] = cols[2].number_input(
-                "sp", 0.0, 200.0, float(v["speed"]), step=1.0,
-                key=f"sp_{i}", label_visibility="collapsed",
+                "sp",
+                0.0,
+                200.0,
+                float(v["speed"]),
+                step=1.0,
+                key=f"sp_{i}",
+                label_visibility="collapsed",
             )
             v["distance_to_intersection"] = cols[3].number_input(
-                "di", 0.0, 2000.0, float(v["distance_to_intersection"]),
-                step=10.0, key=f"di_{i}", label_visibility="collapsed",
+                "di",
+                0.0,
+                2000.0,
+                float(v["distance_to_intersection"]),
+                step=10.0,
+                key=f"di_{i}",
+                label_visibility="collapsed",
             )
             auto_dir = LANE_DIRECTION[str(v["lane"])]
             v["direction"] = auto_dir
@@ -376,8 +466,11 @@ with editor_col:
             dests = LAYOUT_DATA[auto_dir][str(v["lane"])]
             cur = v["destination"] if v["destination"] in dests else dests[0]
             v["destination"] = cols[5].selectbox(
-                "dt", dests, index=dests.index(cur),
-                key=f"dt_{i}", label_visibility="collapsed",
+                "dt",
+                dests,
+                index=dests.index(cur),
+                key=f"dt_{i}",
+                label_visibility="collapsed",
             )
             if cols[6].button("❌", key=f"del_{i}"):
                 st.session_state.vehicles.pop(i)
@@ -392,8 +485,11 @@ with json_col:
     st.markdown("#### 📋 Live JSON Scenario")
     st.caption("Updates in real time. Edit directly — valid changes sync back.")
     st.text_area(
-        label="json", key="json_text", height=350,
-        on_change=on_json_edit, label_visibility="collapsed",
+        label="json",
+        key="json_text",
+        height=350,
+        on_change=on_json_edit,
+        label_visibility="collapsed",
     )
     if st.session_state.get("_json_error"):
         st.error(f"⚠ {st.session_state._json_error}")
@@ -417,8 +513,7 @@ else:
         payload = {"vehicles": vehicles_raw}
 
         with st.spinner(
-            "Consulting the LLM"
-            + (" via FastAPI…" if use_api else " directly (standalone mode)…")
+            "Consulting the LLM" + (" via FastAPI…" if use_api else " directly (standalone mode)…")
         ):
             if use_api:
                 try:
@@ -465,10 +560,14 @@ else:
         if priority:
             st.subheader("🏆 Priority Order & Waiting Times")
             rows = sorted(
-                [{"Vehicle": vid,
-                  "Priority Rank": rank if rank is not None else "—",
-                  "Wait (s)": waiting.get(vid, 0)}
-                 for vid, rank in priority.items()],
+                [
+                    {
+                        "Vehicle": vid,
+                        "Priority Rank": rank if rank is not None else "—",
+                        "Wait (s)": waiting.get(vid, 0),
+                    }
+                    for vid, rank in priority.items()
+                ],
                 key=lambda row: (row["Priority Rank"] == "—", row["Priority Rank"]),
             )
             st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
@@ -489,10 +588,12 @@ else:
             st.divider()
             st.header("🎬 Animated Intersection Visualization")
 
-            tab1, tab2 = st.tabs([
-                "⚠️ Problem View (Conflicts Highlighted)",
-                "✅ Solution View (Wait Times Applied)",
-            ])
+            tab1, tab2 = st.tabs(
+                [
+                    "⚠️ Problem View (Conflicts Highlighted)",
+                    "✅ Solution View (Wait Times Applied)",
+                ]
+            )
             with tab1:
                 visualize_intersection(
                     layout=layout,
@@ -507,21 +608,23 @@ else:
                     if isinstance(pair, dict):
                         v1_id = pair.get("vehicle1_id", "")
                         v2_id = pair.get("vehicle2_id", "")
-                        llm_conflicts.append({
-                            "vehicle1_id": v1_id,
-                            "vehicle2_id": v2_id,
-                            "decision": next(
-                                (d for d in decisions if v1_id in d or v2_id in d), ""
-                            ),
-                            "priority_order": {
-                                v1_id: priority.get(v1_id, 1),
-                                v2_id: priority.get(v2_id, 2),
-                            },
-                            "waiting_times": {
-                                v1_id: waiting.get(v1_id, 0),
-                                v2_id: waiting.get(v2_id, 0),
-                            },
-                        })
+                        llm_conflicts.append(
+                            {
+                                "vehicle1_id": v1_id,
+                                "vehicle2_id": v2_id,
+                                "decision": next(
+                                    (d for d in decisions if v1_id in d or v2_id in d), ""
+                                ),
+                                "priority_order": {
+                                    v1_id: priority.get(v1_id, 1),
+                                    v2_id: priority.get(v2_id, 2),
+                                },
+                                "waiting_times": {
+                                    v1_id: waiting.get(v1_id, 0),
+                                    v2_id: waiting.get(v2_id, 0),
+                                },
+                            }
+                        )
                 visualize_solution(
                     layout=layout,
                     vehicles=vehicles_obj,
