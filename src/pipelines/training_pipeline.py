@@ -22,7 +22,7 @@ will still run all evaluation and comparison steps using the base model.
 import os
 import time
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Optional
 
 import mlflow
 from zenml import pipeline, step
@@ -32,11 +32,9 @@ logger = get_logger(__name__)
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-
 def _src():
     p = str(Path(__file__).parent.parent)
     import sys
-
     if p not in sys.path:
         sys.path.insert(0, p)
 
@@ -47,11 +45,10 @@ def _mlflow_uri() -> str:
 
 # ─── Step 1: Prepare fine-tuning data ────────────────────────────────────────
 
-
 @step
 def prepare_finetune_data(
-    raw_csv: str = "data/raw/generated_dataset.csv",
-    output_path: str = "data/processed/finetune_train.jsonl",
+    raw_csv:      str = "data/raw/generated_dataset.csv",
+    output_path:  str = "data/processed/finetune_train.jsonl",
     max_examples: int = 500,
 ) -> Annotated[str, "finetune_path"]:
     """
@@ -69,11 +66,10 @@ def prepare_finetune_data(
 
 # ─── Step 2: Evaluate zero-shot baseline ─────────────────────────────────────
 
-
 @step
 def evaluate_baseline(
-    raw_csv: str = "data/raw/generated_dataset.csv",
-    model_name: str = "gpt-4o-mini",
+    raw_csv:       str = "data/raw/generated_dataset.csv",
+    model_name:    str = "gpt-4o-mini",
     max_scenarios: int = 20,
 ) -> Annotated[dict, "baseline_metrics"]:
     """
@@ -92,19 +88,16 @@ def evaluate_baseline(
         max_eval_scenarios=max_scenarios,
         run_name="zero-shot-baseline",
     )
-    logger.info(
-        f"Zero-shot → accuracy={metrics.get('accuracy',0):.3f}  F1={metrics.get('f1',0):.3f}"
-    )
+    logger.info(f"Zero-shot → accuracy={metrics.get('accuracy',0):.3f}  F1={metrics.get('f1',0):.3f}")
     return metrics or {}
 
 
 # ─── Step 3: Evaluate few-shot prompting ─────────────────────────────────────
 
-
 @step
 def evaluate_few_shot(
-    raw_csv: str = "data/raw/generated_dataset.csv",
-    model_name: str = "gpt-4o-mini",
+    raw_csv:       str = "data/raw/generated_dataset.csv",
+    model_name:    str = "gpt-4o-mini",
     max_scenarios: int = 20,
 ) -> Annotated[dict, "fewshot_metrics"]:
     """
@@ -123,21 +116,18 @@ def evaluate_few_shot(
         max_eval_scenarios=max_scenarios,
         run_name="few-shot-eval",
     )
-    logger.info(
-        f"Few-shot  → accuracy={metrics.get('accuracy',0):.3f}  F1={metrics.get('f1',0):.3f}"
-    )
+    logger.info(f"Few-shot  → accuracy={metrics.get('accuracy',0):.3f}  F1={metrics.get('f1',0):.3f}")
     return metrics or {}
 
 
 # ─── Step 4: Train model (fine-tuning) ───────────────────────────────────────
 
-
 @step
 def train_model(
-    finetune_path: str = "data/processed/finetune_train.jsonl",
-    base_model: str = "gpt-4o-mini",
-    n_epochs: int = 3,
-    skip_training: bool = True,
+    finetune_path:  str  = "data/processed/finetune_train.jsonl",
+    base_model:     str  = "gpt-4o-mini",
+    n_epochs:       int  = 3,
+    skip_training:  bool = True,
 ) -> Annotated[str, "trained_model_id"]:
     """
     *** The model.fit() equivalent for LLMs ***
@@ -170,7 +160,6 @@ def train_model(
 
     try:
         from openai import OpenAI
-
         client = OpenAI(api_key=api_key)
     except ImportError:
         logger.warning("⚠️  openai not installed — skipping fine-tuning")
@@ -197,20 +186,18 @@ def train_model(
     mlflow.set_tracking_uri(_mlflow_uri())
     mlflow.set_experiment("traffic-intersection-llm")
     with mlflow.start_run(run_name="fine-tuning-job"):
-        mlflow.log_params(
-            {
-                "base_model": base_model,
-                "n_epochs": n_epochs,
-                "training_file": finetune_path,
-                "file_id": file_id,
-                "job_id": job_id,
-            }
-        )
+        mlflow.log_params({
+            "base_model":     base_model,
+            "n_epochs":       n_epochs,
+            "training_file":  finetune_path,
+            "file_id":        file_id,
+            "job_id":         job_id,
+        })
 
     # ── Poll until complete ───────────────────────────────────────────────────
     logger.info("⏳ Polling for job completion (this may take 10–30 minutes)...")
-    poll_interval = 30  # seconds between checks
-    max_wait = 3600  # 1 hour timeout
+    poll_interval = 30   # seconds between checks
+    max_wait      = 3600 # 1 hour timeout
 
     elapsed = 0
     while elapsed < max_wait:
@@ -244,13 +231,12 @@ def train_model(
 
 # ─── Step 5: Evaluate fine-tuned model ───────────────────────────────────────
 
-
 @step
 def evaluate_finetuned(
     trained_model_id: str,
-    base_model_name: str = "gpt-4o-mini",
-    raw_csv: str = "data/raw/generated_dataset.csv",
-    max_scenarios: int = 20,
+    base_model_name:  str = "gpt-4o-mini",
+    raw_csv:          str = "data/raw/generated_dataset.csv",
+    max_scenarios:    int = 20,
 ) -> Annotated[dict, "finetuned_metrics"]:
     """
     Evaluate the fine-tuned model on the test set.
@@ -273,21 +259,18 @@ def evaluate_finetuned(
         max_eval_scenarios=max_scenarios,
         run_name="fine-tuned-eval",
     )
-    logger.info(
-        f"Fine-tuned → accuracy={metrics.get('accuracy',0):.3f}  F1={metrics.get('f1',0):.3f}"
-    )
+    logger.info(f"Fine-tuned → accuracy={metrics.get('accuracy',0):.3f}  F1={metrics.get('f1',0):.3f}")
     return metrics or {}
 
 
 # ─── Step 6: Compare all variants and register best ──────────────────────────
 
-
 @step
 def compare_and_register(
-    baseline_metrics: dict,
-    fewshot_metrics: dict,
+    baseline_metrics:  dict,
+    fewshot_metrics:   dict,
     finetuned_metrics: dict,
-    trained_model_id: str,
+    trained_model_id:  str,
 ) -> Annotated[str, "best_config"]:
     """
     Compare all three model variants and register the best one in MLflow.
@@ -297,14 +280,14 @@ def compare_and_register(
     """
     candidates = {
         "zero_shot": baseline_metrics,
-        "few_shot": fewshot_metrics,
+        "few_shot":  fewshot_metrics,
     }
     if finetuned_metrics:
         candidates["fine_tuned"] = finetuned_metrics
 
-    best_name = max(candidates, key=lambda k: candidates[k].get("f1", 0))
+    best_name    = max(candidates, key=lambda k: candidates[k].get("f1", 0))
     best_metrics = candidates[best_name]
-    best_f1 = best_metrics.get("f1", 0)
+    best_f1      = best_metrics.get("f1", 0)
 
     logger.info(f"🏆 Best configuration: {best_name}  (F1={best_f1:.4f})")
 
@@ -317,22 +300,15 @@ def compare_and_register(
                 if isinstance(value, (int, float)):
                     mlflow.log_metric(f"{variant}_{metric_name}", value)
 
-        mlflow.log_param("best_config", best_name)
-        mlflow.log_param("best_f1", best_f1)
+        mlflow.log_param("best_config",         best_name)
+        mlflow.log_param("best_f1",             best_f1)
         mlflow.log_param("fine_tuned_model_id", trained_model_id or "none")
 
         # Log comparison table as artifact
         import json
         from pathlib import Path
-
-        table = {
-            v: {
-                k: round(m.get(k, 0), 4)
-                for k in ["accuracy", "f1", "recall", "fnr", "avg_latency_s"]
-            }
-            for v, m in candidates.items()
-            if m
-        }
+        table = {v: {k: round(m.get(k, 0), 4) for k in ["accuracy","f1","recall","fnr","avg_latency_s"]}
+                 for v, m in candidates.items() if m}
         Path("reports").mkdir(exist_ok=True)
         with open("reports/model_comparison.json", "w") as f:
             json.dump({"best": best_name, "results": table}, f, indent=2)
@@ -357,7 +333,6 @@ def compare_and_register(
 
 # ─── Step 7: Energy measurement ───────────────────────────────────────────────
 
-
 @step
 def measure_energy(
     best_config: str,
@@ -368,14 +343,13 @@ def measure_energy(
     """
     try:
         from codecarbon import EmissionsTracker
-
         tracker = EmissionsTracker(
             project_name="traffic-intersection-llm",
             log_level="error",
             output_dir="reports/",
         )
         tracker.start()
-        _ = sum(i**2 for i in range(200_000))  # representative compute workload
+        _ = sum(i ** 2 for i in range(200_000))   # representative compute workload
         emissions_kg = tracker.stop()
 
         report = {"co2_kg": emissions_kg, "best_config": best_config}
@@ -384,8 +358,8 @@ def measure_energy(
         mlflow.set_tracking_uri(_mlflow_uri())
         mlflow.set_experiment("traffic-intersection-llm")
         with mlflow.start_run(run_name="energy-measurement"):
-            mlflow.log_metric("co2_kg", emissions_kg)
-            mlflow.log_metric("co2_g", emissions_kg * 1000)
+            mlflow.log_metric("co2_kg",    emissions_kg)
+            mlflow.log_metric("co2_g",     emissions_kg * 1000)
             mlflow.log_param("best_config", best_config)
 
     except Exception as exc:
@@ -397,14 +371,13 @@ def measure_energy(
 
 # ─── Pipeline definition ──────────────────────────────────────────────────────
 
-
 @pipeline(name="m4_training_pipeline", enable_cache=False)
 def training_pipeline(
-    model_name: str = "gpt-4o-mini",
-    max_scenarios: int = 20,
-    skip_training: bool = True,
-    max_examples: int = 500,
-    n_epochs: int = 3,
+    model_name:     str  = "gpt-4o-mini",
+    max_scenarios:  int  = 20,
+    skip_training:  bool = True,
+    max_examples:   int  = 500,
+    n_epochs:       int  = 3,
 ):
     """
     Milestone 4 — Full LLM Training Pipeline
@@ -475,21 +448,18 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Milestone 4 — Training Pipeline")
-    parser.add_argument("--model", default="gpt-4o-mini")
-    parser.add_argument("--max-scenarios", type=int, default=20)
-    parser.add_argument("--max-examples", type=int, default=500)
-    parser.add_argument("--n-epochs", type=int, default=3)
-    parser.add_argument(
-        "--train", action="store_true", help="Enable fine-tuning (costs money, takes 10-30 min)"
-    )
+    parser.add_argument("--model",          default="gpt-4o-mini")
+    parser.add_argument("--max-scenarios",  type=int,  default=20)
+    parser.add_argument("--max-examples",   type=int,  default=500)
+    parser.add_argument("--n-epochs",       type=int,  default=3)
+    parser.add_argument("--train",          action="store_true",
+                        help="Enable fine-tuning (costs money, takes 10-30 min)")
     args = parser.parse_args()
 
     print("🚀 Starting Milestone 4 Training Pipeline")
     print(f"   Model:          {args.model}")
     print(f"   Max scenarios:  {args.max_scenarios}")
-    print(
-        f"   Fine-tuning:    {'✅ Enabled' if args.train else '⏭️  Skipped (pass --train to enable)'}"
-    )
+    print(f"   Fine-tuning:    {'✅ Enabled' if args.train else '⏭️  Skipped (pass --train to enable)'}")
     print()
 
     training_pipeline(
