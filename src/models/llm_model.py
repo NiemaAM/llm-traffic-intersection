@@ -57,125 +57,211 @@ FEW_SHOT_EXAMPLES = [
     # ── Example 1: Classic N↔S conflict, close arrival ────────────────────────
     {
         "role": "user",
-        "content": json.dumps({
-            "vehicles": [
-                {"vehicle_id": "V1001", "lane": 1, "speed": 60, "distance_to_intersection": 50,
-                 "direction": "north", "destination": "F"},
-                {"vehicle_id": "V1002", "lane": 5, "speed": 45, "distance_to_intersection": 55,
-                 "direction": "south", "destination": "D"},
-            ]
-        })
+        "content": json.dumps(
+            {
+                "vehicles": [
+                    {
+                        "vehicle_id": "V1001",
+                        "lane": 1,
+                        "speed": 60,
+                        "distance_to_intersection": 50,
+                        "direction": "north",
+                        "destination": "F",
+                    },
+                    {
+                        "vehicle_id": "V1002",
+                        "lane": 5,
+                        "speed": 45,
+                        "distance_to_intersection": 55,
+                        "direction": "south",
+                        "destination": "D",
+                    },
+                ]
+            }
+        ),
     },
     {
         "role": "assistant",
-        "content": json.dumps({
-            "is_conflict": "yes",
-            "number_of_conflicts": 1,
-            "conflict_vehicles": [{"vehicle1_id": "V1001", "vehicle2_id": "V1002"}],
-            "decisions": ["Potential conflict: Vehicle V1002 must yield to Vehicle V1001"],
-            "priority_order": {"V1001": 1, "V1002": 2},
-            "waiting_times": {"V1001": 0, "V1002": 3}
-        })
+        "content": json.dumps(
+            {
+                "is_conflict": "yes",
+                "number_of_conflicts": 1,
+                "conflict_vehicles": [{"vehicle1_id": "V1001", "vehicle2_id": "V1002"}],
+                "decisions": ["Potential conflict: Vehicle V1002 must yield to Vehicle V1001"],
+                "priority_order": {"V1001": 1, "V1002": 2},
+                "waiting_times": {"V1001": 0, "V1002": 3},
+            }
+        ),
     },
     # ── Example 2: No conflict — vehicles too far apart in arrival time ────────
     {
         "role": "user",
-        "content": json.dumps({
-            "vehicles": [
-                {"vehicle_id": "V2001", "lane": 1, "speed": 70, "distance_to_intersection": 40,
-                 "direction": "north", "destination": "H"},
-                {"vehicle_id": "V2002", "lane": 3, "speed": 25, "distance_to_intersection": 380,
-                 "direction": "east", "destination": "B"},
-            ]
-        })
+        "content": json.dumps(
+            {
+                "vehicles": [
+                    {
+                        "vehicle_id": "V2001",
+                        "lane": 1,
+                        "speed": 70,
+                        "distance_to_intersection": 40,
+                        "direction": "north",
+                        "destination": "H",
+                    },
+                    {
+                        "vehicle_id": "V2002",
+                        "lane": 3,
+                        "speed": 25,
+                        "distance_to_intersection": 380,
+                        "direction": "east",
+                        "destination": "B",
+                    },
+                ]
+            }
+        ),
     },
     {
         "role": "assistant",
-        "content": json.dumps({
-            "is_conflict": "no",
-            "number_of_conflicts": 0,
-            "conflict_vehicles": [],
-            "decisions": [],
-            "priority_order": {"V2001": 1, "V2002": 2},
-            "waiting_times": {"V2001": 0, "V2002": 0}
-        })
+        "content": json.dumps(
+            {
+                "is_conflict": "no",
+                "number_of_conflicts": 0,
+                "conflict_vehicles": [],
+                "decisions": [],
+                "priority_order": {"V2001": 1, "V2002": 2},
+                "waiting_times": {"V2001": 0, "V2002": 0},
+            }
+        ),
     },
     # ── Example 3: N↔E conflict, straight vs right turn ──────────────────────
     {
         "role": "user",
-        "content": json.dumps({
-            "vehicles": [
-                {"vehicle_id": "V3001", "lane": 1, "speed": 55, "distance_to_intersection": 70,
-                 "direction": "north", "destination": "H"},
-                {"vehicle_id": "V3002", "lane": 3, "speed": 50, "distance_to_intersection": 75,
-                 "direction": "east", "destination": "B"},
-            ]
-        })
+        "content": json.dumps(
+            {
+                "vehicles": [
+                    {
+                        "vehicle_id": "V3001",
+                        "lane": 1,
+                        "speed": 55,
+                        "distance_to_intersection": 70,
+                        "direction": "north",
+                        "destination": "H",
+                    },
+                    {
+                        "vehicle_id": "V3002",
+                        "lane": 3,
+                        "speed": 50,
+                        "distance_to_intersection": 75,
+                        "direction": "east",
+                        "destination": "B",
+                    },
+                ]
+            }
+        ),
     },
     {
         "role": "assistant",
-        "content": json.dumps({
-            "is_conflict": "yes",
-            "number_of_conflicts": 1,
-            "conflict_vehicles": [{"vehicle1_id": "V3001", "vehicle2_id": "V3002"}],
-            "decisions": ["Potential conflict: Vehicle V3002 must yield to Vehicle V3001"],
-            "priority_order": {"V3001": 1, "V3002": 2},
-            "waiting_times": {"V3001": 0, "V3002": 3}
-        })
+        "content": json.dumps(
+            {
+                "is_conflict": "yes",
+                "number_of_conflicts": 1,
+                "conflict_vehicles": [{"vehicle1_id": "V3001", "vehicle2_id": "V3002"}],
+                "decisions": ["Potential conflict: Vehicle V3002 must yield to Vehicle V3001"],
+                "priority_order": {"V3001": 1, "V3002": 2},
+                "waiting_times": {"V3001": 0, "V3002": 3},
+            }
+        ),
     },
     # ── Example 4: 3 vehicles, 2 conflicts ────────────────────────────────────
     {
         "role": "user",
-        "content": json.dumps({
-            "vehicles": [
-                {"vehicle_id": "V4001", "lane": 1, "speed": 60, "distance_to_intersection": 65,
-                 "direction": "north", "destination": "F"},
-                {"vehicle_id": "V4002", "lane": 5, "speed": 55, "distance_to_intersection": 70,
-                 "direction": "south", "destination": "D"},
-                {"vehicle_id": "V4003", "lane": 3, "speed": 50, "distance_to_intersection": 72,
-                 "direction": "east", "destination": "B"},
-            ]
-        })
+        "content": json.dumps(
+            {
+                "vehicles": [
+                    {
+                        "vehicle_id": "V4001",
+                        "lane": 1,
+                        "speed": 60,
+                        "distance_to_intersection": 65,
+                        "direction": "north",
+                        "destination": "F",
+                    },
+                    {
+                        "vehicle_id": "V4002",
+                        "lane": 5,
+                        "speed": 55,
+                        "distance_to_intersection": 70,
+                        "direction": "south",
+                        "destination": "D",
+                    },
+                    {
+                        "vehicle_id": "V4003",
+                        "lane": 3,
+                        "speed": 50,
+                        "distance_to_intersection": 72,
+                        "direction": "east",
+                        "destination": "B",
+                    },
+                ]
+            }
+        ),
     },
     {
         "role": "assistant",
-        "content": json.dumps({
-            "is_conflict": "yes",
-            "number_of_conflicts": 2,
-            "conflict_vehicles": [
-                {"vehicle1_id": "V4001", "vehicle2_id": "V4002"},
-                {"vehicle1_id": "V4001", "vehicle2_id": "V4003"},
-            ],
-            "decisions": [
-                "Potential conflict: Vehicle V4002 must yield to Vehicle V4001",
-                "Potential conflict: Vehicle V4003 must yield to Vehicle V4001",
-            ],
-            "priority_order": {"V4001": 1, "V4002": 2, "V4003": 2},
-            "waiting_times": {"V4001": 0, "V4002": 3, "V4003": 3}
-        })
+        "content": json.dumps(
+            {
+                "is_conflict": "yes",
+                "number_of_conflicts": 2,
+                "conflict_vehicles": [
+                    {"vehicle1_id": "V4001", "vehicle2_id": "V4002"},
+                    {"vehicle1_id": "V4001", "vehicle2_id": "V4003"},
+                ],
+                "decisions": [
+                    "Potential conflict: Vehicle V4002 must yield to Vehicle V4001",
+                    "Potential conflict: Vehicle V4003 must yield to Vehicle V4001",
+                ],
+                "priority_order": {"V4001": 1, "V4002": 2, "V4003": 2},
+                "waiting_times": {"V4001": 0, "V4002": 3, "V4003": 3},
+            }
+        ),
     },
     # ── Example 5: No conflict — same direction ────────────────────────────────
     {
         "role": "user",
-        "content": json.dumps({
-            "vehicles": [
-                {"vehicle_id": "V5001", "lane": 1, "speed": 50, "distance_to_intersection": 100,
-                 "direction": "north", "destination": "F"},
-                {"vehicle_id": "V5002", "lane": 2, "speed": 45, "distance_to_intersection": 120,
-                 "direction": "north", "destination": "E"},
-            ]
-        })
+        "content": json.dumps(
+            {
+                "vehicles": [
+                    {
+                        "vehicle_id": "V5001",
+                        "lane": 1,
+                        "speed": 50,
+                        "distance_to_intersection": 100,
+                        "direction": "north",
+                        "destination": "F",
+                    },
+                    {
+                        "vehicle_id": "V5002",
+                        "lane": 2,
+                        "speed": 45,
+                        "distance_to_intersection": 120,
+                        "direction": "north",
+                        "destination": "E",
+                    },
+                ]
+            }
+        ),
     },
     {
         "role": "assistant",
-        "content": json.dumps({
-            "is_conflict": "no",
-            "number_of_conflicts": 0,
-            "conflict_vehicles": [],
-            "decisions": [],
-            "priority_order": {"V5001": 1, "V5002": 2},
-            "waiting_times": {"V5001": 0, "V5002": 0}
-        })
+        "content": json.dumps(
+            {
+                "is_conflict": "no",
+                "number_of_conflicts": 0,
+                "conflict_vehicles": [],
+                "decisions": [],
+                "priority_order": {"V5001": 1, "V5002": 2},
+                "waiting_times": {"V5001": 0, "V5002": 0},
+            }
+        ),
     },
 ]
 
@@ -308,6 +394,7 @@ class IntersectionLLM:
 
         try:
             from openai import OpenAI
+
             self._client = OpenAI(api_key=self._api_key)
             self._available = True
         except ImportError:
@@ -381,24 +468,33 @@ class IntersectionLLM:
         """
         results = []
         for scenario_id, group in df.groupby("scenario_id"):
-            vehicles = group[[
-                "vehicle_id", "lane", "speed",
-                "distance_to_intersection", "direction", "destination"
-            ]].to_dict(orient="records")
+            vehicles = group[
+                [
+                    "vehicle_id",
+                    "lane",
+                    "speed",
+                    "distance_to_intersection",
+                    "direction",
+                    "destination",
+                ]
+            ].to_dict(orient="records")
             scenario = {"vehicles": vehicles}
             try:
                 pred = self.predict(scenario)
                 pred["scenario_id"] = scenario_id
                 results.append(pred)
             except Exception as exc:
-                results.append({
-                    "scenario_id": scenario_id,
-                    "error": str(exc),
-                })
+                results.append(
+                    {
+                        "scenario_id": scenario_id,
+                        "error": str(exc),
+                    }
+                )
         return pd.DataFrame(results)
 
 
 # ─── Fine-tuning helper ───────────────────────────────────────────────────────
+
 
 def build_finetune_example(row: pd.Series) -> dict:
     """
@@ -406,39 +502,41 @@ def build_finetune_example(row: pd.Series) -> dict:
     """
     import ast
 
-    vehicles = [{
-        "vehicle_id": row["vehicle_id"],
-        "lane": int(row["lane"]),
-        "speed": float(row["speed"]),
-        "distance_to_intersection": float(row["distance_to_intersection"]),
-        "direction": row["direction"],
-        "destination": row["destination"],
-    }]
+    vehicles = [
+        {
+            "vehicle_id": row["vehicle_id"],
+            "lane": int(row["lane"]),
+            "speed": float(row["speed"]),
+            "distance_to_intersection": float(row["distance_to_intersection"]),
+            "direction": row["direction"],
+            "destination": row["destination"],
+        }
+    ]
 
     try:
         priority_order = ast.literal_eval(row["priority_order"])
-        waiting_times  = ast.literal_eval(row["waiting_times"])
+        waiting_times = ast.literal_eval(row["waiting_times"])
         conflict_vehicles = ast.literal_eval(row["conflict_vehicles"])
-        decisions      = ast.literal_eval(row["decisions"])
+        decisions = ast.literal_eval(row["decisions"])
     except Exception:
         priority_order = {}
-        waiting_times  = {}
+        waiting_times = {}
         conflict_vehicles = []
-        decisions      = []
+        decisions = []
 
     assistant_response = {
-        "is_conflict":          row["is_conflict"],
-        "number_of_conflicts":  int(row["number_of_conflicts"]),
-        "conflict_vehicles":    conflict_vehicles,
-        "decisions":            decisions,
-        "priority_order":       priority_order,
-        "waiting_times":        waiting_times,
+        "is_conflict": row["is_conflict"],
+        "number_of_conflicts": int(row["number_of_conflicts"]),
+        "conflict_vehicles": conflict_vehicles,
+        "decisions": decisions,
+        "priority_order": priority_order,
+        "waiting_times": waiting_times,
     }
 
     return {
         "messages": [
-            {"role": "system",    "content": SYSTEM_PROMPT},
-            {"role": "user",      "content": json.dumps({"vehicles": vehicles})},
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": json.dumps({"vehicles": vehicles})},
             {"role": "assistant", "content": json.dumps(assistant_response)},
         ]
     }
@@ -466,6 +564,7 @@ def prepare_finetune_dataset(
             row = group.iloc[0]
 
             import ast
+
             try:
                 conflict_vehicles = ast.literal_eval(row["conflict_vehicles"])
                 decisions = ast.literal_eval(row["decisions"])
@@ -477,10 +576,16 @@ def prepare_finetune_dataset(
                 priority_order = {}
                 waiting_times = {}
 
-            vehicles = group[[
-                "vehicle_id", "lane", "speed",
-                "distance_to_intersection", "direction", "destination"
-            ]].to_dict(orient="records")
+            vehicles = group[
+                [
+                    "vehicle_id",
+                    "lane",
+                    "speed",
+                    "distance_to_intersection",
+                    "direction",
+                    "destination",
+                ]
+            ].to_dict(orient="records")
 
             assistant_response = {
                 "is_conflict": row["is_conflict"],
@@ -493,8 +598,8 @@ def prepare_finetune_dataset(
 
             example = {
                 "messages": [
-                    {"role": "system",    "content": SYSTEM_PROMPT},
-                    {"role": "user",      "content": json.dumps({"vehicles": vehicles})},
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": json.dumps({"vehicles": vehicles})},
                     {"role": "assistant", "content": json.dumps(assistant_response)},
                 ]
             }
