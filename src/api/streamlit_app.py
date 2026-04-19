@@ -1,4 +1,4 @@
-"""
+"""# v5.2 - embedded modules, all vehicles, waiting times fixed
 streamlit_app.py  —  Milestone 5
 ---------------------------------
 Production Streamlit front-end with:
@@ -973,8 +973,9 @@ def _build_figure(
     #     wait_end     = (TTA + wait_seconds) / total_sim_time
     # (clamped so crossing always occupies at least MIN_CROSS_FRAC of the timeline)
 
-    CROSS_TIME = 4.0  # seconds a vehicle takes to traverse the box
-    MIN_CROSS_FRAC = 0.10  # crossing gets at least 10% of the animation
+    CROSS_TIME = 6.0  # seconds a vehicle takes to traverse the box (increased for clarity)
+    MIN_CROSS_FRAC = 0.15  # crossing gets at least 15% of the animation
+    MIN_WAIT_FRAC = 0.12  # waiting gets at least 12% of the animation when wait > 0
 
     # Gather per-vehicle TTA (guard against inf for stopped vehicles)
     def _tta(v: Any) -> float:
@@ -989,8 +990,18 @@ def _build_figure(
         str(v.vehicle_id): float(waiting_times.get(str(v.vehicle_id), 0.0)) for v in vehicles
     }
 
+    # Boost small waiting times so they are clearly visible in the animation
+    # Any vehicle with wait > 0 gets at least MIN_WAIT_SEC seconds of wait phase
+    MIN_WAIT_SEC = 4.0
+    veh_wait_boosted = {
+        vid: max(wt, MIN_WAIT_SEC) if wt > 0 else 0.0 for vid, wt in veh_wait.items()
+    }
+
     total_sim_time = (
-        max(veh_tta[str(v.vehicle_id)] + veh_wait[str(v.vehicle_id)] + CROSS_TIME for v in vehicles)
+        max(
+            veh_tta[str(v.vehicle_id)] + veh_wait_boosted[str(v.vehicle_id)] + CROSS_TIME
+            for v in vehicles
+        )
         if vehicles
         else 1.0
     )
@@ -1002,7 +1013,7 @@ def _build_figure(
     for v in vehicles:
         vid = str(v.vehicle_id)
         tta = veh_tta[vid]
-        wait = veh_wait[vid]
+        wait = veh_wait_boosted[vid]
 
         ae = tta / total_sim_time
         we = (tta + wait) / total_sim_time
@@ -1011,6 +1022,10 @@ def _build_figure(
         ae = min(ae, 1.0 - MIN_CROSS_FRAC)
         we = min(we, 1.0 - MIN_CROSS_FRAC)
         we = max(we, ae)  # wait_end >= approach_end
+
+        # Enforce minimum wait fraction so waiting is clearly visible
+        if veh_wait[vid] > 0 and (we - ae) < MIN_WAIT_FRAC:
+            we = min(ae + MIN_WAIT_FRAC, 1.0 - MIN_CROSS_FRAC)
 
         veh_approach_end[vid] = ae
         veh_wait_end[vid] = we
@@ -1611,7 +1626,7 @@ if "last_result" not in st.session_state:
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 
 with st.sidebar:
-    st.title("\u2699\ufe0f Configuration")
+    st.title("Configuration")
     st.subheader("Model Status")
     fine_tuned_id = os.environ.get("FINE_TUNED_MODEL_ID", "").strip()
     model_name = os.environ.get("MODEL_NAME", "gpt-4o-mini")
@@ -1625,16 +1640,29 @@ with st.sidebar:
         except Exception:
             pass
     else:
-        st.info("\U0001f916 Standalone mode")
-        (
-            st.success("\u2705 API key loaded")
-            if api_key
-            else st.error("\u274c OPENAI_API_KEY not set")
-        )
+        st.info("Standalone mode (direct LLM)")
+        if api_key:
+            st.success("API key loaded")
+        else:
+            st.error("OPENAI_API_KEY not set")
 
     if fine_tuned_id:
-        st.success("\U0001f3c6 Fine-tuned model active")
-        st.caption("Accuracy: 78.3% | F1: 0.78")
+        st.success("Fine-tuned model active")
+        st.dataframe(
+            pd.DataFrame(
+                [
+                    {"Metric": "Accuracy", "Value": "78.33%"},
+                    {"Metric": "Precision", "Value": "79.31%"},
+                    {"Metric": "Recall", "Value": "76.67%"},
+                    {"Metric": "F1 Score", "Value": "77.97%"},
+                    {"Metric": "FNR", "Value": "23.33%"},
+                    {"Metric": "Avg Latency", "Value": "1.63 s"},
+                    {"Metric": "Error Rate", "Value": "0.00%"},
+                ]
+            ),
+            use_container_width=True,
+            hide_index=True,
+        )
     else:
         st.caption(f"Base model: `{model_name}`")
 
@@ -1646,20 +1674,20 @@ with st.sidebar:
     st.divider()
     st.subheader("Layout Reference")
     for direction, lanes in LAYOUT_DATA.items():
-        lane_str = "  |  ".join(
-            f"Lane {ln} \u2192 {'/'.join(dests)}" for ln, dests in lanes.items()
-        )
+        lane_str = "  |  ".join(f"Lane {ln} -> {'/'.join(dests)}" for ln, dests in lanes.items())
         st.caption(f"**{direction.capitalize()}:** {lane_str}")
 
     st.divider()
     st.markdown(
-        "**Milestone 5 \u2013 Production Serving**\n\n"
-        "Baseline: [Masri et al., 2025](https://arxiv.org/abs/2411.10869)"
+        "**Milestone 5 - Production Serving**\n\n"
+        "Baseline: [Masri et al., 2025](https://arxiv.org/abs/2411.10869)\n\n"
+        "Code: [github.com/NiemaAM/llm-traffic-intersection]"
+        "(https://github.com/NiemaAM/llm-traffic-intersection)"
     )
 
 # ── Header ────────────────────────────────────────────────────────────────────
 
-st.title("\U0001f6a6 LLM-Driven Intersection Conflict Resolver")
+st.title("LLM-Driven Intersection Conflict Resolver")
 st.markdown(
     "Production serving of **GPT-4o-mini (fine-tuned)** conflict detection agent. "
     "Analyzes vehicle scenarios at a 4-way 8-lane intersection in real time."
@@ -1668,7 +1696,7 @@ st.divider()
 
 # ── Scenario section ──────────────────────────────────────────────────────────
 
-st.header("\U0001f697 Define Intersection Scenario")
+st.header("Define Intersection Scenario")
 
 c1, c2, c3, c4, c5 = st.columns([3, 1, 1, 1, 1])
 with c1:
@@ -1730,7 +1758,7 @@ with c5:
 editor_col, json_col = st.columns([1, 1], gap="large")
 
 with editor_col:
-    st.markdown("#### \U0001f5c2 Vehicle Editor")
+    st.markdown("#### Vehicle Editor")
     st.caption("Direction is automatically determined by lane number.")
 
     if st.session_state.vehicles:
@@ -1779,7 +1807,7 @@ with editor_col:
             v["destination"] = cols[5].selectbox(
                 "dt", dests, index=dests.index(cur), key=f"dt_{vid}", label_visibility="collapsed"
             )
-            if cols[6].button("\u274c", key=f"del_{vid}"):
+            if cols[6].button("🗑", key=f"del_{vid}"):
                 to_delete = vid
 
         if to_delete is not None:
@@ -1792,10 +1820,10 @@ with editor_col:
 
         sync_json()
     else:
-        st.info("\u2139\ufe0f Add at least 2 vehicles to run the analysis.")
+        st.info("Add at least 2 vehicles to run the analysis.")
 
 with json_col:
-    st.markdown("#### \U0001f4cb Live JSON Scenario")
+    st.markdown("#### Live JSON Scenario")
     st.caption("Updates in real time. Edit directly \u2014 valid changes sync back.")
     st.text_area(
         label="json",
@@ -1805,57 +1833,12 @@ with json_col:
         label_visibility="collapsed",
     )
     if st.session_state.get("_json_error"):
-        st.error(f"\u26a0 {st.session_state._json_error}")
+        st.error(f"{st.session_state._json_error}")
     else:
-        st.success("\u2705 JSON is valid and synced.")
-
-# ── Live Visualization (always visible) ───────────────────────────────────────
-
-st.divider()
-st.markdown("#### \U0001f3ac Intersection Visualization")
+        st.success("JSON is valid and synced.")
 
 vehicles_raw = list(st.session_state.vehicles)
 result = st.session_state.last_result
-
-if len(vehicles_raw) >= 2:
-    if result is not None:
-        # Post-analysis: two tabs
-        tab1, tab2 = st.tabs(
-            [
-                "\u26a0\ufe0f Problem View (Conflicts Highlighted)",
-                "\u2705 Solution View (Wait Times Applied)",
-            ]
-        )
-        with tab1:
-            fig = _make_problem_fig(vehicles_raw, anim_steps, anim_interval)
-            (
-                st.plotly_chart(fig, use_container_width=True)
-                if fig
-                else st.warning("Visualization unavailable.")
-            )
-        with tab2:
-            waiting: dict = {}
-            for pair in result.get("conflict_vehicles", []):
-                if isinstance(pair, dict):
-                    for vid in [pair.get("vehicle1_id", ""), pair.get("vehicle2_id", "")]:
-                        wt = result.get("waiting_times", {}).get(vid, 0)
-                        waiting[str(vid)] = float(wt)
-            fig = _make_solution_fig(vehicles_raw, waiting, anim_steps, anim_interval)
-            (
-                st.plotly_chart(fig, use_container_width=True)
-                if fig
-                else st.warning("Visualization unavailable.")
-            )
-    else:
-        # Pre-analysis: live problem view
-        fig = _make_problem_fig(vehicles_raw, anim_steps, anim_interval)
-        (
-            st.plotly_chart(fig, use_container_width=True)
-            if fig
-            else st.info("\u26a0\ufe0f Visualization unavailable.")
-        )
-else:
-    st.info("\u2139\ufe0f Add at least 2 vehicles to see the visualization.")
 
 # ── Analyze button ────────────────────────────────────────────────────────────
 
@@ -1863,7 +1846,7 @@ st.divider()
 if len(vehicles_raw) < 2:
     st.warning("Add at least **2 vehicles** to run the analysis.")
 else:
-    if st.button("\U0001f50d Analyze Intersection", type="primary", use_container_width=True):
+    if st.button("Analyze Intersection", type="primary", use_container_width=True):
         v_raw, jerr = from_json(st.session_state.json_text)
         if jerr:
             st.error(f"Cannot run: {jerr}")
@@ -1889,20 +1872,22 @@ else:
                     st.error(f"\u274c {res['error']}")
                     st.stop()
 
+        # Save the exact vehicles that were analyzed (from JSON, not widget state)
         st.session_state.last_result = res
+        st.session_state.last_vehicles_analyzed = v_raw
         st.rerun()
 
 # ── Results ───────────────────────────────────────────────────────────────────
 
 if result is not None:
-    st.header("\U0001f4ca Analysis Results")
+    st.header("Analysis Results")
     is_conflict = str(result.get("is_conflict", "no")).lower() == "yes"
     n_conflicts = int(result.get("number_of_conflicts", 0))
 
     if is_conflict:
-        st.error(f"\u26a0\ufe0f **CONFLICT DETECTED** \u2014 {n_conflicts} conflict(s)")
+        st.error(f"**CONFLICT DETECTED** — {n_conflicts} conflict(s)")
     else:
-        st.success("\u2705 **No Conflicts Detected** \u2014 intersection is clear")
+        st.success("**No Conflicts Detected** — intersection is clear")
 
     m1, m2, m3 = st.columns(3)
     m1.metric("Conflicts", n_conflicts)
@@ -1911,16 +1896,16 @@ if result is not None:
 
     decisions = result.get("decisions", [])
     if decisions:
-        st.subheader("\U0001f4cb Control Decisions")
+        st.subheader("Control Decisions")
         for d in decisions:
-            st.warning(f"\U0001f514 {d}")
+            st.warning(f"{d}")
     else:
-        st.info("\u2139\ufe0f No control actions required.")
+        st.info("No control actions required.")
 
     priority = result.get("priority_order", {})
     waiting = result.get("waiting_times", {})
     if priority:
-        st.subheader("\U0001f3c6 Priority Order & Waiting Times")
+        st.subheader("Priority Order & Waiting Times")
         rows = sorted(
             [
                 {
@@ -1936,17 +1921,51 @@ if result is not None:
 
     cv = result.get("conflict_vehicles", [])
     if cv and isinstance(cv[0], dict):
-        st.subheader("\U0001f6a8 Conflicting Vehicle Pairs")
+        st.subheader("Conflicting Vehicle Pairs")
         st.dataframe(pd.DataFrame(cv), use_container_width=True, hide_index=True)
 
-    with st.expander("\U0001f527 Full JSON Response"):
+    with st.expander("Full JSON Response"):
         st.json(result)
+
+# ── Visualization (shown after analysis) ─────────────────────────────────────
+
+# Use vehicles that were actually analyzed (saved at analysis time)
+viz_vehicles = st.session_state.get("last_vehicles_analyzed", vehicles_raw)
+
+if result is not None and len(viz_vehicles) >= 2:
+    st.divider()
+    st.markdown("#### Intersection Visualization")
+
+    tab1, tab2 = st.tabs(
+        [
+            "Problem View (Conflicts Highlighted)",
+            "Solution View (Wait Times Applied)",
+        ]
+    )
+    with tab1:
+        fig = _make_problem_fig(viz_vehicles, anim_steps, anim_interval)
+        if fig:
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("Visualization unavailable.")
+    with tab2:
+        waiting: dict = {}
+        for pair in result.get("conflict_vehicles", []):
+            if isinstance(pair, dict):
+                for vid in [pair.get("vehicle1_id", ""), pair.get("vehicle2_id", "")]:
+                    wt = result.get("waiting_times", {}).get(vid, 0)
+                    waiting[str(vid)] = float(wt)
+        fig = _make_solution_fig(vehicles_raw, waiting, anim_steps, anim_interval)
+        if fig:
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("Visualization unavailable.")
 
 # ── Footer ────────────────────────────────────────────────────────────────────
 
 st.divider()
 st.caption(
-    "\U0001f6a6 Milestone 5 \u2013 Production Serving  |  "
+    "Milestone 5 - Production Serving  |  "
     "LLM-Driven Agents for Traffic Intersection Conflict Resolution  |  "
-    "CSC5382 \u2013 AI for Digital Transformation"
+    "CSC5382 - AI for Digital Transformation"
 )
