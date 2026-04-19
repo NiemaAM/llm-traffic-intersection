@@ -30,19 +30,6 @@ import streamlit as st
 # EMBEDDED: conflict_detection_orig.py
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# src/conflict_detection.py
-
-"""
-Conflict Detection Module
-
-This module contains classes and functions to detect potential conflicts
-between vehicles approaching an intersection based on their trajectories,
-arrival times, and movement types.
-
-Author: Your Name
-Date: YYYY-MM-DD
-"""
-
 
 # Mapping of opposite directions
 OPPOSITE_DIRECTIONS = {"north": "south", "east": "west", "south": "north", "west": "east"}
@@ -597,7 +584,6 @@ def output_conflicts(conflicts):
 # ═══════════════════════════════════════════════════════════════════════════════
 # EMBEDDED: visualization_orig.py  (functions only — no st.set_page_config)
 # ═══════════════════════════════════════════════════════════════════════════════
-
 
 # ---------------------------------------------------------------------------
 # Geometry constants
