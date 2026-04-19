@@ -70,9 +70,11 @@ upload("/tmp/hf_requirements.txt", "requirements.txt")
 
 # ── Source modules needed at runtime ─────────────────────────────────────────
 src_files = [
-    # Models
+    # Models — uploaded to both src/models/ AND models/ for import compatibility
     ("src/models/llm_model.py",                 "src/models/llm_model.py"),
+    ("src/models/llm_model.py",                 "models/llm_model.py"),
     ("src/models/__init__.py",                  "src/models/__init__.py"),
+    ("src/models/__init__.py",                  "models/__init__.py"),
     # PoC conflict detection (for visualization)
     ("src/poc/conflict_detection_orig.py",      "src/poc/conflict_detection_orig.py"),
     ("src/poc/visualization_orig.py",           "src/poc/visualization_orig.py"),
@@ -112,7 +114,7 @@ Production serving of **GPT-4o-mini (fine-tuned)** for traffic intersection conf
 ## Setup
 Add these secrets in Space Settings:
 - `OPENAI_API_KEY` — your OpenAI API key
-- `FINE_TUNED_MODEL_ID` — `ft:gpt-4o-mini-2024-07-18:personal::DW8yoWD9`
+- `FINE_TUNED_MODEL_ID` — `ft:gpt-4o-mini-2024-07-18:personal::DWL89pFu`
 - `MODEL_NAME` — `gpt-4o-mini`
 """
 with open("/tmp/README.md", "w") as f:
@@ -122,5 +124,5 @@ upload("/tmp/README.md", "README.md")
 print(f"\n✅ Deployed → https://huggingface.co/spaces/{HF_SPACE}")
 print("   Make sure these Space secrets are set:")
 print("   - OPENAI_API_KEY")
-print("   - FINE_TUNED_MODEL_ID = ft:gpt-4o-mini-2024-07-18:personal::DW8yoWD9")
+print("   - FINE_TUNED_MODEL_ID = ft:gpt-4o-mini-2024-07-18:personal::DWL89pFu")
 print("   - MODEL_NAME = gpt-4o-mini")
