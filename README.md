@@ -145,10 +145,10 @@ Set your values. **Important `.env` formatting rules** — inline comments break
 ```bash
 # ✅ CORRECT — comment on its own line
 # Optional fine-tuned model ID
-FINE_TUNED_MODEL_ID=ft:gpt-4o-mini-2024-07-18:personal::DW8yoWD9
+FINE_TUNED_MODEL_ID=ft:gpt-4o-mini-2024-07-18:personal::DWL89pFu
 
 # ❌ WRONG — comment on same line becomes part of the value
-FINE_TUNED_MODEL_ID=ft:gpt-4o-mini-2024-07-18:personal::DW8yoWD9  # fine-tuned model
+FINE_TUNED_MODEL_ID=ft:gpt-4o-mini-2024-07-18:personal::DWL89pFu  # fine-tuned model
 ```
 
 Correct `.env` content:
@@ -157,7 +157,7 @@ Correct `.env` content:
 OPENAI_API_KEY=sk-proj-...your-full-key...
 
 # Fine-tuned model ID (Masri et al. format, evaluated at 78.3% accuracy)
-FINE_TUNED_MODEL_ID=ft:gpt-4o-mini-2024-07-18:personal::DW8yoWD9
+FINE_TUNED_MODEL_ID=ft:gpt-4o-mini-2024-07-18:personal::DWL89pFu
 
 MODEL_NAME=gpt-4o-mini
 FEW_SHOT=true
@@ -654,7 +654,7 @@ Define, train, evaluate, and version the LLM conflict detector with reproducible
 1. Implemented `IntersectionLLM` wrapper (zero-shot, few-shot, fine-tuned modes).
 2. Designed system prompt following Masri et al. natural language format (input → yes/no).
 3. Built JSONL fine-tuning dataset export (285 training examples, 50/50 balanced).
-4. Fine-tuned `GPT-4o-mini` via OpenAI API — model ID: `ft:gpt-4o-mini-2024-07-18:personal::DW8yoWD9`.
+4. Fine-tuned `GPT-4o-mini` via OpenAI API — model ID: `ft:gpt-4o-mini-2024-07-18:personal::DWL89pFu`.
 5. Integrated MLflow with persistent SQLite backend (`mlflow.db`).
 6. Built 7-step ZenML training pipeline including real `train_model` step.
 7. Added CodeCarbon energy measurement.
@@ -718,7 +718,7 @@ MLflow experiment: `traffic-intersection-llm`
 |---|---|---|
 | `zero-shot-baseline` | model=gpt-4o-mini, few_shot=False | accuracy, F1, recall, FNR, latency |
 | `few-shot-eval` | model=gpt-4o-mini, few_shot=True | accuracy, F1, recall, FNR, latency |
-| `fine-tuned-eval` | model=ft:gpt-4o-mini::DW8yoWD9, fine_tuned=True | accuracy, F1, recall, FNR, latency |
+| `fine-tuned-eval` | model=ft:gpt-4o-mini::DWL89pFu, fine_tuned=True | accuracy, F1, recall, FNR, latency |
 | `model-comparison` | best_config=fine_tuned, best_f1=0.780 | all variant F1s |
 | `energy-measurement` | best_config=fine_tuned | co2_kg, co2_g |
 
@@ -732,9 +732,9 @@ MLflow experiment: `traffic-intersection-llm`
 |---|---|---|---|---|---|---|
 | **Zero-shot** | 0.6500 | 0.6800 | 0.5667 | 0.6182 | 0.4333 | 2.26 s |
 | **Few-shot** | 0.6000 | 0.7500 | 0.3000 | 0.4286 | 0.7000 | 2.14 s |
-| **Fine-tuned** (`DW8yoWD9`) | **0.7833** | **0.7931** | **0.7667** | **0.7797** | **0.2333** | **1.63 s** |
+| **Fine-tuned** (`DWL89pFu`) | **0.7833** | **0.7931** | **0.7667** | **0.7797** | **0.2333** | **1.63 s** |
 
-> **Best model:** Fine-tuned `ft:gpt-4o-mini-2024-07-18:personal::DW8yoWD9`
+> **Best model:** Fine-tuned `ft:gpt-4o-mini-2024-07-18:personal::DWL89pFu`
 > Fine-tuning approach: Masri et al. natural language format — vehicle descriptions as text input, `yes`/`no` output, 285 examples, 50/50 balanced split.
 
 The `compare_and_register` step picks the best variant by F1 score, logs a comparison table to MLflow as a JSON artifact (`reports/model_comparison.json`), and records the fine-tuned model ID for use in Milestone 5.
@@ -847,7 +847,7 @@ python scripts/deploy_hf.py
               ┌─────────────────┐
               │  OpenAI API     │
               │  ft:gpt-4o-mini │
-              │  ::DW8yoWD9     │
+              │  ::DWL89pFu     │
               └─────────────────┘
 ┌─────────────────────────────────────────────────────────┐
 │  MLOps: MLflow (5000) · ZenML (8237)                    │
