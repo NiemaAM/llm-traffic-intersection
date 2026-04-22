@@ -37,12 +37,12 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src" / "poc"))
 
 # ── Import original engines ───────────────────────────────────────────────────
-from conflict_detection_orig import (           # noqa: E402
+from conflict_detection_orig import (  # noqa: E402
+    detect_conflicts,
     parse_intersection_layout,
     parse_vehicles,
-    detect_conflicts,
 )
-from visualization_orig import (                # noqa: E402
+from visualization_orig import (  # noqa: E402
     visualize_intersection,
     visualize_solution,
 )
