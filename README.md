@@ -433,6 +433,9 @@ Arguments: published ~83% accuracy benchmark, full reproducibility via GitHub re
 | GPT-mini | Zero-shot | ~62% |
 | LLaMA-3.1 (fine-tuned) | Fine-tuned | ~51% |
 
+<img width="933" height="691" alt="image" src="https://github.com/user-attachments/assets/060d6ad4-ec78-4c70-8749-813887801fb4" />
+
+
 #### Metrics for Business Goal Evaluation
 
 **Safety metrics (primary):**
@@ -486,6 +489,12 @@ PYTHONPATH=. streamlit run src/poc/poc_app.py --server.port 8503
 # Open: http://localhost:8503
 ```
 
+https://llm-traffic-intersection.streamlit.app/
+
+<img width="1840" height="1009" alt="image" src="https://github.com/user-attachments/assets/765e9270-7b70-47c2-b2d3-aa6990b52375" />
+<img width="1842" height="1005" alt="image" src="https://github.com/user-attachments/assets/4696e05c-586e-431c-b674-d5b366215ac5" />
+
+
 ---
 
 ### 2.1 Model Integration
@@ -495,6 +504,9 @@ Two engines selectable from the sidebar:
 **Engine A — Rule-Based** (`src/poc/conflict_detection_orig.py`): deterministic, offline, instant. Uses `paths_cross()`, `arrival_time_close()`, `apply_priority_rules()` from Masri et al.
 
 **Engine B — LLM** (`src/models/llm_model.py`): GPT-4o-mini with system prompt + few-shot examples. API key and model name loaded automatically from `.env`.
+
+<img width="430" height="757" alt="image" src="https://github.com/user-attachments/assets/971cdb7d-66b7-4ecd-8a67-0ca8209b9c6d" />
+
 
 ---
 
@@ -579,6 +591,9 @@ ZenML pipeline `m3_data_pipeline` — **5/5 steps completed, 0 failed**:
 ```
 ingest_data → validate_data → engineer_features → version_data → push_to_feature_store
 ```
+
+<img width="1856" height="1007" alt="Capture d&#39;écran 2026-04-19 202251" src="https://github.com/user-attachments/assets/b05b25fb-bf4d-4ece-a1b3-579594905582" />
+
 
 | Step | Duration | Status |
 |---|---|---|
@@ -702,6 +717,9 @@ prepare_finetune_data
         └──► train_model ──► evaluate_finetuned ─┘
 ```
 
+<img width="1841" height="1005" alt="Capture d&#39;écran 2026-04-19 202204" src="https://github.com/user-attachments/assets/9f5c8a94-c4a9-4bfa-8562-c0d96c068a45" />
+
+
 | Step | Duration | Status |
 |---|---|---|
 | `prepare_finetune_data` | 0s | ✅ |
@@ -739,11 +757,19 @@ MLflow experiment: `traffic-intersection-llm`
 
 The `compare_and_register` step picks the best variant by F1 score, logs a comparison table to MLflow as a JSON artifact (`reports/model_comparison.json`), and records the fine-tuned model ID for use in Milestone 5.
 
+<img width="1825" height="937" alt="image" src="https://github.com/user-attachments/assets/f97d6776-0dc6-473e-8b85-3f669e57ba55" />
+<img width="1828" height="939" alt="image" src="https://github.com/user-attachments/assets/535b7fd1-cd88-4509-bc59-553016b37bee" />
+<img width="1825" height="933" alt="image" src="https://github.com/user-attachments/assets/bfde600d-148a-4d8e-9610-455a28b0a6c9" />
+
+
 ---
 
 ### 4.5 Energy Efficiency Measurement
 
 CodeCarbon tracks CO₂ emissions per pipeline run. Results logged to MLflow `energy-measurement` run:
+
+<img width="1831" height="945" alt="image" src="https://github.com/user-attachments/assets/fea67dd4-0bd7-4cf0-941d-725401cb9b4b" />
+
 
 | Metric | Value |
 |---|---|
@@ -828,6 +854,8 @@ python scripts/deploy_hf.py
 
 ### 5.1 ML System Architecture
 
+<img width="3415" height="3234" alt="Drawing" src="https://github.com/user-attachments/assets/f86163dd-a2a3-4639-920c-3cfeaf3e7b26" />
+
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                    CLIENT LAYER                         │
@@ -874,6 +902,9 @@ python scripts/deploy_hf.py
 
 **CI/CD Pipeline** (`.github/workflows/ci_cd.yml`) — **all 5 jobs green** on every push:
 
+<img width="1844" height="1004" alt="Capture d&#39;écran 2026-04-19 202408" src="https://github.com/user-attachments/assets/830e420e-11a2-4c74-834e-ee338cfa19b3" />
+
+
 | Job | Status |
 |---|---|
 | Lint & Format Check | ✅ |
@@ -896,6 +927,9 @@ ZenML pipeline `m5_serving_pipeline` — **4/4 steps completed, 0 failed**:
 load_best_model → validate_api → run_api_tests → register_serving
 ```
 
+<img width="1853" height="1004" alt="Capture d&#39;écran 2026-04-19 202227" src="https://github.com/user-attachments/assets/21e34333-d6d3-46c6-892c-fb954c50f82a" />
+
+
 | Step | Duration | Status |
 |---|---|---|
 | `load_best_model` | 1s | ✅ |
@@ -904,6 +938,9 @@ load_best_model → validate_api → run_api_tests → register_serving
 | `register_serving` | 1s | ✅ |
 
 #### MLflow `serving-registration` Run Metrics
+
+<img width="1843" height="1003" alt="image" src="https://github.com/user-attachments/assets/37411d03-1614-41a4-af14-0253f033846a" />
+
 
 | Metric | Value |
 |---|---|
@@ -915,6 +952,9 @@ load_best_model → validate_api → run_api_tests → register_serving
 
 #### FastAPI Endpoints
 
+<img width="1842" height="1003" alt="Capture d&#39;écran 2026-04-19 202128" src="https://github.com/user-attachments/assets/32668d21-b18d-4cea-bcf0-0b0eaa3fdc5c" />
+
+
 | Endpoint | Method | Description |
 |---|---|---|
 | `/health` | GET | Health check — returns model name and status |
@@ -922,6 +962,9 @@ load_best_model → validate_api → run_api_tests → register_serving
 | `/docs` | GET | Swagger UI (OpenAPI 3.1) |
 
 #### Fine-Tuned Model Performance (deployed)
+
+<img width="1842" height="1005" alt="Capture d&#39;écran 2026-04-22 231921" src="https://github.com/user-attachments/assets/086b6668-0970-4c6c-b748-637d979f3243" />
+
 
 | Metric | Value |
 |---|---|
@@ -942,11 +985,16 @@ The live HuggingFace Space features:
 - **Analysis Results**: conflict status, control decisions, priority table, waiting times
 - **Intersection Visualization**: animated Problem View (conflicts highlighted) + Solution View (wait times applied), shown after clicking Analyze
 
----
+<img width="1854" height="1004" alt="Capture d&#39;écran 2026-04-19 202506" src="https://github.com/user-attachments/assets/babd5f11-b08b-4708-bf7b-d57e47f3b599" />
+<img width="1848" height="1005" alt="Capture d&#39;écran 2026-04-19 202526" src="https://github.com/user-attachments/assets/de12fc64-1a5f-4c1c-a227-3b485fdb3db1" />
+<img width="1846" height="1002" alt="Capture d&#39;écran 2026-04-19 202541" src="https://github.com/user-attachments/assets/c50f233c-b2db-4737-8228-832bd7d81a80" />
+
 
 ---
 
-## Milestone 6: Model Testing, Evaluation, Monitoring and Continual Learning
+---
+
+## Milestone 6: Model Testing, Evaluation, Monitoring and Continual Learning (ongoing)
 
 ### Introduction
 
