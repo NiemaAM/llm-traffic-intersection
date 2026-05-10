@@ -1063,6 +1063,10 @@ PYTHONPATH=. python scripts/explain.py
 
 # View drift report
 open reports/drift_report.html
+
+# Start Grafana + Prometheus (Docker required)
+docker compose -f deployment/docker/docker-compose.yml up -d grafana prometheus
+# Open: http://localhost:3000  (login: admin / admin)
 ```
 
 ---
@@ -1154,6 +1158,23 @@ audit_model_bias + evaluate_on_test_set + load_reference_data
 | `detect_drift` | 4s | ✅ 4 columns drifted |
 | `continual_learning_decision` | 1s | ✅ Retrain triggered (drift) |
 | `log_monitoring_results` | 3s | ✅ MLflow logged |
+
+#### Grafana Monitoring Dashboard
+
+Start Grafana and Prometheus via Docker Compose:
+
+```bash
+cd ~/llm-traffic-intersection
+docker compose -f deployment/docker/docker-compose.yml up -d grafana prometheus
+```
+
+Then open **http://localhost:3000** in your browser.
+
+- Login: `admin` / `admin`
+- Dashboard: **CDC Pipeline – Monitoring** (pre-configured)
+- Shows: Prometheus uptime, active scrape targets, scrape duration, samples scraped
+
+The dashboard monitors the full ML pipeline infrastructure including Prometheus self-monitoring metrics (uptime, memory usage, scrape targets) updated every 10 seconds.
 
 ---
 
