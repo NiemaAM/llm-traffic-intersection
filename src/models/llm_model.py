@@ -322,6 +322,7 @@ def _build_full_decision(vehicles: list, is_conflict: bool) -> dict:
         }
         layout = parse_intersection_layout(LAYOUT_DATA)
         import warnings as _warnings
+
         with _warnings.catch_warnings(record=True) as _caught:
             _warnings.simplefilter("always")
             vobjs = parse_vehicles({"vehicles_scenario": vehicles}, layout)
@@ -329,8 +330,7 @@ def _build_full_decision(vehicles: list, is_conflict: bool) -> dict:
 
         # Check if rule-based engine had unknown lane issues
         unknown_lane_warnings = any(
-            "unknown lane" in str(w.message) or "not accessible" in str(w.message)
-            for w in _caught
+            "unknown lane" in str(w.message) or "not accessible" in str(w.message) for w in _caught
         )
 
         # If unknown lanes detected, trust the LLM yes/no answer directly
