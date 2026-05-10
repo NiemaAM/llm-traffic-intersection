@@ -16,32 +16,104 @@ import pandas as pd
 
 
 def compute_data_drift(
-    reference_df: pd.DataFrame,
-    production_df: pd.DataFrame,
+    reference_data: "pd.DataFrame",
+    production_data: "pd.DataFrame",
     output_path: str = "reports/drift_report.html",
 ) -> dict:
     """
-    Compute data drift between reference and production data using Evidently.
-    Falls back to a simple statistical drift check if Evidently is unavailable.
+    Compute data drift between reference and production datasets.
+    Uses evidently legacy Report API with scipy KS-test fallback.
+    Compatible with Python 3.11 across all evidently versions.
     """
+    import os
+    import warnings
+
+    import numpy as np
+    import pandas as pd
+    from scipy import stats
+
+    os.makedirs(
+        os.path.dirname(output_path) if os.path.dirname(output_path) else "reports",
+        exist_ok=True,
+    )
+
+    def _statistical_drift(ref: pd.DataFrame, prod: pd.DataFrame) -> dict:
+        """KS-test drift detection — always works, no evidently needed."""
+        numeric_cols = [
+            c for c in ref.columns
+            if ref[c].dtype in [np.float64, np.int64, float, int]
+            and c in prod.columns
+        ]
+        drifted, drift_scores = [], {}
+        for col in numeric_cols:
+            try:
+                _, pval = stats.ks_2samp(ref[col].dropna(), prod[col].dropna())
+                drift_scores[col] = float(pval)
+                if pval < 0.05:
+                    drifted.append(col)
+            except Exception:
+                pass
+        return {
+            "drift_detected":   len(drifted) > 0,
+            "drifted_columns":  drifted,
+            "drift_scores":     drift_scores,
+            "n_drifted":        len(drifted),
+            "n_tested":         len(numeric_cols),
+            "method":           "KS test (scipy)",
+        }
+
+    # ── Try evidently Report API (v0.4+) ─────────────────────────────────────
     try:
-        from evidently.metric_preset import DataDriftPreset, DataQualityPreset
-        from evidently.report import Report
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            from evidently.report import Report  # type: ignore
+            from evidently.metric_preset import DataDriftPreset  # type: ignore
 
-        report = Report(metrics=[DataDriftPreset(), DataQualityPreset()])
-        report.run(reference_data=reference_df, current_data=production_df)
+            report = Report(metrics=[DataDriftPreset()])
+            report.run(reference_data=reference_data, current_data=production_data)
+            report.save_html(output_path)
+            result = report.as_dict()
 
-        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-        report.save_html(output_path)
-        print(f"📊 Drift report saved → {output_path}")
+        metrics = result.get("metrics", [{}])[0].get("result", {})
+        drift_share = float(metrics.get("share_of_drifted_columns", 0))
+        n_drifted   = int(metrics.get("number_of_drifted_columns", 0))
+        return {
+            "drift_detected":       drift_share > 0.2,
+            "drift_share":          drift_share,
+            "n_drifted_columns":    n_drifted,
+            "report_path":          output_path,
+            "method":               "Evidently DataDriftPreset",
+        }
+    except Exception:
+        pass
 
-        result = report.as_dict()
-        drift_detected = result["metrics"][0]["result"].get("dataset_drift", False)
-        return {"drift_detected": drift_detected, "report_path": output_path}
+    # ── Fallback: pure scipy KS test + plain HTML report ─────────────────────
+    stat_result = _statistical_drift(reference_data, production_data)
 
-    except ImportError:
-        return _simple_drift_check(reference_df, production_df)
+    html_rows = "".join(
+        f"<tr><td>{c}</td><td>{v:.4f}</td>"
+        f"<td style='color:{'red' if v < 0.05 else 'green'}'>"
+        f"{'Yes' if v < 0.05 else 'No'}</td></tr>"
+        for c, v in stat_result["drift_scores"].items()
+    )
+    html = f"""<!DOCTYPE html><html><head><meta charset='utf-8'>
+<title>Data Drift Report</title>
+<style>body{{font-family:sans-serif;padding:24px}}
+table{{border-collapse:collapse;width:100%}}
+th,td{{border:1px solid #ccc;padding:8px;text-align:left}}
+th{{background:#f0f0f0}}</style></head><body>
+<h2>Data Drift Report</h2>
+<p><b>Method:</b> {stat_result["method"]}</p>
+<p><b>Drift detected:</b> {stat_result["drift_detected"]}</p>
+<p><b>Drifted columns:</b> {stat_result["n_drifted"]} / {stat_result["n_tested"]}</p>
+<table><tr><th>Column</th><th>KS p-value</th><th>Drifted</th></tr>
+{html_rows}</table></body></html>"""
 
+    with open(output_path, "w") as f:
+        f.write(html)
+
+    stat_result["report_path"] = output_path
+    return stat_result
 
 def _simple_drift_check(
     ref: pd.DataFrame,

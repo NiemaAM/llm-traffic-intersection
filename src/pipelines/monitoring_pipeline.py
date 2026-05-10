@@ -1,4 +1,3 @@
-import os
 """
 monitoring_pipeline.py
 ----------------------
@@ -6,6 +5,7 @@ ZenML pipeline for model monitoring, evaluation, and continual learning.
 Milestone 6: Drift detection, A/B testing, CT/CD triggers, pipeline orchestration.
 """
 
+import os
 from pathlib import Path
 from typing import Annotated
 
@@ -252,7 +252,9 @@ def log_monitoring_results(
 
 @pipeline(name="traffic_monitoring_pipeline", enable_cache=False)
 def monitoring_pipeline(
-    model_name: str = os.environ.get("FINE_TUNED_MODEL_ID", "ft:gpt-4o-mini-2024-07-18:personal::DX7kzKtB"),
+    model_name: str = os.environ.get(
+        "FINE_TUNED_MODEL_ID", "ft:gpt-4o-mini-2024-07-18:personal::DX7kzKtB"
+    ),
     max_scenarios: int = 30,
 ):
     """
