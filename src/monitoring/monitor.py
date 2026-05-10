@@ -40,9 +40,9 @@ def compute_data_drift(
     def _statistical_drift(ref: pd.DataFrame, prod: pd.DataFrame) -> dict:
         """KS-test drift detection — always works, no evidently needed."""
         numeric_cols = [
-            c for c in ref.columns
-            if ref[c].dtype in [np.float64, np.int64, float, int]
-            and c in prod.columns
+            c
+            for c in ref.columns
+            if ref[c].dtype in [np.float64, np.int64, float, int] and c in prod.columns
         ]
         drifted, drift_scores = [], {}
         for col in numeric_cols:
@@ -54,20 +54,20 @@ def compute_data_drift(
             except Exception:
                 pass
         return {
-            "drift_detected":   len(drifted) > 0,
-            "drifted_columns":  drifted,
-            "drift_scores":     drift_scores,
-            "n_drifted":        len(drifted),
-            "n_tested":         len(numeric_cols),
-            "method":           "KS test (scipy)",
+            "drift_detected": len(drifted) > 0,
+            "drifted_columns": drifted,
+            "drift_scores": drift_scores,
+            "n_drifted": len(drifted),
+            "n_tested": len(numeric_cols),
+            "method": "KS test (scipy)",
         }
 
     # ── Try evidently Report API (v0.4+) ─────────────────────────────────────
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            from evidently.report import Report  # type: ignore
             from evidently.metric_preset import DataDriftPreset  # type: ignore
+            from evidently.report import Report  # type: ignore
 
             report = Report(metrics=[DataDriftPreset()])
             report.run(reference_data=reference_data, current_data=production_data)
@@ -76,13 +76,13 @@ def compute_data_drift(
 
         metrics = result.get("metrics", [{}])[0].get("result", {})
         drift_share = float(metrics.get("share_of_drifted_columns", 0))
-        n_drifted   = int(metrics.get("number_of_drifted_columns", 0))
+        n_drifted = int(metrics.get("number_of_drifted_columns", 0))
         return {
-            "drift_detected":       drift_share > 0.2,
-            "drift_share":          drift_share,
-            "n_drifted_columns":    n_drifted,
-            "report_path":          output_path,
-            "method":               "Evidently DataDriftPreset",
+            "drift_detected": drift_share > 0.2,
+            "drift_share": drift_share,
+            "n_drifted_columns": n_drifted,
+            "report_path": output_path,
+            "method": "Evidently DataDriftPreset",
         }
     except Exception:
         pass
@@ -114,6 +114,7 @@ th{{background:#f0f0f0}}</style></head><body>
 
     stat_result["report_path"] = output_path
     return stat_result
+
 
 def _simple_drift_check(
     ref: pd.DataFrame,

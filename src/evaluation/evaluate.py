@@ -20,7 +20,14 @@ def evaluate_model_masri(
 ) -> dict:
     """Evaluate on masri-format test_scenarios.csv (scenario JSON column)."""
     import json
-    from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, precision_score, recall_score
+
+    from sklearn.metrics import (
+        accuracy_score,
+        confusion_matrix,
+        f1_score,
+        precision_score,
+        recall_score,
+    )
 
     df = pd.read_csv(test_csv)
     rows = df.sample(min(max_scenarios, len(df)), random_state=42).iterrows()
@@ -48,7 +55,10 @@ def evaluate_model_masri(
         "f1": f1_score(y_true, y_pred, pos_label=1, zero_division=0),
         "fnr": float(1 - recall),
         "fpr": float(fp / (fp + tn)) if (fp + tn) > 0 else 0.0,
-        "tn": int(tn), "fp": int(fp), "fn": int(fn), "tp": int(tp),
+        "tn": int(tn),
+        "fp": int(fp),
+        "fn": int(fn),
+        "tp": int(tp),
         "n_evaluated": len(y_true),
     }
 
