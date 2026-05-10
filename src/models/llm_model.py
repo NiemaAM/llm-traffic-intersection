@@ -321,14 +321,30 @@ def _build_full_decision(vehicles: list, is_conflict: bool) -> dict:
             }
         }
         layout = parse_intersection_layout(LAYOUT_DATA)
-        vobjs = parse_vehicles({"vehicles_scenario": vehicles}, layout)
-        conflicts = detect_conflicts(vobjs)
+        import warnings as _warnings
+        with _warnings.catch_warnings(record=True) as _caught:
+            _warnings.simplefilter("always")
+            vobjs = parse_vehicles({"vehicles_scenario": vehicles}, layout)
+            conflicts = detect_conflicts(vobjs)
+
+        # Check if rule-based engine had unknown lane issues
+        unknown_lane_warnings = any(
+            "unknown lane" in str(w.message) or "not accessible" in str(w.message)
+            for w in _caught
+        )
+
+        # If unknown lanes detected, trust the LLM yes/no answer directly
+        if unknown_lane_warnings and is_conflict is not None:
+            conflicts_for_structure = conflicts if conflicts else []
+            effective_conflict = is_conflict
+        else:
+            effective_conflict = bool(conflicts)
+            conflicts_for_structure = conflicts
 
         # Aggregate across conflicts — take max waiting time per vehicle
-        # (a vehicle may appear in multiple conflicts; it should wait the longest)
         priority_order: dict = {}
         waiting_times: dict = {}
-        for c in conflicts:
+        for c in conflicts_for_structure:
             for vid, rank in c["priority_order"].items():
                 if vid not in priority_order:
                     priority_order[vid] = rank
@@ -336,7 +352,7 @@ def _build_full_decision(vehicles: list, is_conflict: bool) -> dict:
                 waiting_times[vid] = max(waiting_times.get(vid, 0), int(wt))
 
         return {
-            "is_conflict": "yes" if conflicts else "no",
+            "is_conflict": "yes" if effective_conflict else "no",
             "number_of_conflicts": len(conflicts),
             "conflict_vehicles": [
                 {"vehicle1_id": c["vehicle1_id"], "vehicle2_id": c["vehicle2_id"]}

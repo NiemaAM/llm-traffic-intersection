@@ -1,3 +1,4 @@
+import os
 """
 monitoring_pipeline.py
 ----------------------
@@ -97,7 +98,7 @@ def detect_drift(
 
 @step
 def evaluate_on_test_set(
-    raw_csv: str = "data/raw/generated_dataset.csv",
+    raw_csv: str = "data/masri_finetune/eval_only_masri.csv",
     model_name: str = "gpt-4o-mini",
     max_scenarios: int = 30,
 ) -> Annotated[dict, "test_metrics"]:
@@ -105,10 +106,14 @@ def evaluate_on_test_set(
     import sys
 
     sys.path.insert(0, str(Path(__file__).parent.parent))
-    from evaluation.evaluate import evaluate_model
+    from evaluation.evaluate import evaluate_model_masri as evaluate_model
     from models.llm_model import IntersectionLLM
 
-    llm = IntersectionLLM(model=model_name, few_shot=True)
+    ft_id = os.environ.get("FINE_TUNED_MODEL_ID", "")
+    if ft_id:
+        llm = IntersectionLLM(model="gpt-4o-mini", fine_tuned_model_id=ft_id, few_shot=False)
+    else:
+        llm = IntersectionLLM(model=model_name, few_shot=True)
     try:
         metrics = evaluate_model(raw_csv, llm, max_scenarios=max_scenarios)
     except Exception as exc:
@@ -130,7 +135,11 @@ def run_robustness_tests(
     from evaluation.evaluate import RobustnessTests
     from models.llm_model import IntersectionLLM
 
-    llm = IntersectionLLM(model=model_name, few_shot=True)
+    ft_id = os.environ.get("FINE_TUNED_MODEL_ID", "")
+    if ft_id:
+        llm = IntersectionLLM(model="gpt-4o-mini", fine_tuned_model_id=ft_id, few_shot=False)
+    else:
+        llm = IntersectionLLM(model=model_name, few_shot=True)
     try:
         tester = RobustnessTests(llm)
         report = tester.run_all()
@@ -154,7 +163,11 @@ def audit_model_bias(
     from evaluation.evaluate import audit_bias
     from models.llm_model import IntersectionLLM
 
-    llm = IntersectionLLM(model=model_name, few_shot=True)
+    ft_id = os.environ.get("FINE_TUNED_MODEL_ID", "")
+    if ft_id:
+        llm = IntersectionLLM(model="gpt-4o-mini", fine_tuned_model_id=ft_id, few_shot=False)
+    else:
+        llm = IntersectionLLM(model=model_name, few_shot=True)
     try:
         report = audit_bias(raw_csv, llm, max_scenarios_per_group=10)
     except Exception as exc:
@@ -218,7 +231,7 @@ def log_monitoring_results(
     """Log all monitoring results to MLflow for tracking."""
     import mlflow
 
-    mlflow.set_tracking_uri("mlruns")
+    mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI", "http://localhost:5000"))
     mlflow.set_experiment("traffic-intersection-llm")
 
     with mlflow.start_run(run_name="monitoring-run"):
@@ -239,7 +252,7 @@ def log_monitoring_results(
 
 @pipeline(name="traffic_monitoring_pipeline", enable_cache=False)
 def monitoring_pipeline(
-    model_name: str = "gpt-4o-mini",
+    model_name: str = os.environ.get("FINE_TUNED_MODEL_ID", "ft:gpt-4o-mini-2024-07-18:personal::DX7kzKtB"),
     max_scenarios: int = 30,
 ):
     """

@@ -13,6 +13,46 @@ import pandas as pd
 # ─── Standard evaluation ──────────────────────────────────────────────────────
 
 
+def evaluate_model_masri(
+    test_csv: str,
+    model,
+    max_scenarios: int = 100,
+) -> dict:
+    """Evaluate on masri-format test_scenarios.csv (scenario JSON column)."""
+    import json
+    from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, precision_score, recall_score
+
+    df = pd.read_csv(test_csv)
+    rows = df.sample(min(max_scenarios, len(df)), random_state=42).iterrows()
+    y_true, y_pred = [], []
+    for _, row in rows:
+        try:
+            scenario = json.loads(row["scenario"])
+            vehicles = scenario.get("vehicles_scenario", [])
+            true_label = 1 if str(row["is_conflict"]).strip().lower() == "yes" else 0
+            result = model.predict({"vehicles": vehicles})
+            pred_label = 1 if result.get("is_conflict") == "yes" else 0
+            y_true.append(true_label)
+            y_pred.append(pred_label)
+        except Exception:
+            pass
+    if not y_true:
+        return {"accuracy": 0, "precision": 0, "recall": 0, "f1": 0, "fnr": 1.0, "n_evaluated": 0}
+    cm = confusion_matrix(y_true, y_pred, labels=[0, 1])
+    tn, fp, fn, tp = cm.ravel() if cm.size == 4 else (0, 0, 0, 0)
+    recall = recall_score(y_true, y_pred, pos_label=1, zero_division=0)
+    return {
+        "accuracy": accuracy_score(y_true, y_pred),
+        "precision": precision_score(y_true, y_pred, pos_label=1, zero_division=0),
+        "recall": recall,
+        "f1": f1_score(y_true, y_pred, pos_label=1, zero_division=0),
+        "fnr": float(1 - recall),
+        "fpr": float(fp / (fp + tn)) if (fp + tn) > 0 else 0.0,
+        "tn": int(tn), "fp": int(fp), "fn": int(fn), "tp": int(tp),
+        "n_evaluated": len(y_true),
+    }
+
+
 def evaluate_model(
     raw_csv: str,
     model,
