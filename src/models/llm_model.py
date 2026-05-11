@@ -3,7 +3,6 @@ llm_model.py
 ------------
 LLM-based intersection conflict resolver.
 Uses prompt engineering (zero-shot + few-shot) with an OpenAI-compatible API.
-Inspired by the PseudoCodeRAG-Translator pattern of structured prompt training.
 """
 
 import json

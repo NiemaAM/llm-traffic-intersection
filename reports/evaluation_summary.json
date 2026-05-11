@@ -1,0 +1,153 @@
+{
+  "results": [
+    {
+      "run_name": "Zero-Shot 4-vehicle",
+      "mode": "zero-shot",
+      "label": "Zero-Shot",
+      "scenario_type": "4-vehicle",
+      "accuracy": 0.84,
+      "precision": 0.75,
+      "recall": 0.9545454545454546,
+      "f1": 0.84,
+      "fnr": 0.045454545454545414,
+      "tp": 21,
+      "tn": 21,
+      "fp": 7,
+      "fn": 1
+    },
+    {
+      "run_name": "Zero-Shot 8-vehicle",
+      "mode": "zero-shot",
+      "label": "Zero-Shot",
+      "scenario_type": "8-vehicle",
+      "accuracy": 0.66,
+      "precision": 0.6,
+      "recall": 0.782608695652174,
+      "f1": 0.6792452830188679,
+      "fnr": 0.21739130434782605,
+      "tp": 18,
+      "tn": 15,
+      "fp": 12,
+      "fn": 5
+    },
+    {
+      "run_name": "Zero-Shot mixed",
+      "mode": "zero-shot",
+      "label": "Zero-Shot",
+      "scenario_type": "mixed",
+      "accuracy": 0.62,
+      "precision": 0.6,
+      "recall": 0.72,
+      "f1": 0.6545454545454545,
+      "fnr": 0.28,
+      "tp": 18,
+      "tn": 13,
+      "fp": 12,
+      "fn": 7
+    },
+    {
+      "run_name": "Few-Shot 4-vehicle",
+      "mode": "few-shot",
+      "label": "Few-Shot",
+      "scenario_type": "4-vehicle",
+      "accuracy": 0.78,
+      "precision": 0.6896551724137931,
+      "recall": 0.9090909090909091,
+      "f1": 0.7843137254901961,
+      "fnr": 0.09090909090909094,
+      "tp": 20,
+      "tn": 19,
+      "fp": 9,
+      "fn": 2
+    },
+    {
+      "run_name": "Few-Shot 8-vehicle",
+      "mode": "few-shot",
+      "label": "Few-Shot",
+      "scenario_type": "8-vehicle",
+      "accuracy": 0.66,
+      "precision": 0.5882352941176471,
+      "recall": 0.8695652173913043,
+      "f1": 0.7017543859649122,
+      "fnr": 0.13043478260869568,
+      "tp": 20,
+      "tn": 13,
+      "fp": 14,
+      "fn": 3
+    },
+    {
+      "run_name": "Few-Shot mixed",
+      "mode": "few-shot",
+      "label": "Few-Shot",
+      "scenario_type": "mixed",
+      "accuracy": 0.68,
+      "precision": 0.6285714285714286,
+      "recall": 0.88,
+      "f1": 0.7333333333333333,
+      "fnr": 0.12,
+      "tp": 22,
+      "tn": 12,
+      "fp": 13,
+      "fn": 3
+    },
+    {
+      "run_name": "Fine-Tuned 4-vehicle",
+      "mode": "fine-tuned",
+      "label": "Fine-Tuned",
+      "scenario_type": "4-vehicle",
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "fnr": 0.0,
+      "tp": 22,
+      "tn": 28,
+      "fp": 0,
+      "fn": 0
+    },
+    {
+      "run_name": "Fine-Tuned 8-vehicle",
+      "mode": "fine-tuned",
+      "label": "Fine-Tuned",
+      "scenario_type": "8-vehicle",
+      "accuracy": 0.94,
+      "precision": 0.8846153846153846,
+      "recall": 1.0,
+      "f1": 0.9387755102040817,
+      "fnr": 0.0,
+      "tp": 23,
+      "tn": 24,
+      "fp": 3,
+      "fn": 0
+    },
+    {
+      "run_name": "Fine-Tuned mixed",
+      "mode": "fine-tuned",
+      "label": "Fine-Tuned",
+      "scenario_type": "mixed",
+      "accuracy": 0.98,
+      "precision": 0.9615384615384616,
+      "recall": 1.0,
+      "f1": 0.9803921568627451,
+      "fnr": 0.0,
+      "tp": 25,
+      "tn": 24,
+      "fp": 1,
+      "fn": 0
+    }
+  ],
+  "rouge": {
+    "4-vehicle": {
+      "conflicts": 0.0378,
+      "decisions": 0.0255,
+      "priority": 0.0176,
+      "waiting": 0.0236
+    },
+    "mixed": {
+      "conflicts": 0.0413,
+      "decisions": 0.0218,
+      "priority": 0.0089,
+      "waiting": 0.0204
+    }
+  }
+}

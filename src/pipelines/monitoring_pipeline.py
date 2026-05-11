@@ -1,8 +1,46 @@
 """
-monitoring_pipeline.py
-----------------------
+src/pipelines/monitoring_pipeline.py
+--------------------------------------
 ZenML pipeline for model monitoring, evaluation, and continual learning.
 Milestone 6: Drift detection, A/B testing, CT/CD triggers, pipeline orchestration.
+
+Steps
+-----
+  1. audit_model_bias          Evaluate model fairness across vehicle direction groups
+                               (north/south/east/west); flags bias if F1 disparity > 0.15
+  2. evaluate_on_test_set      Leakage-free evaluation on eval_only_masri.csv (seed=999)
+                               using fine-tuned model DX7kzKtB via evaluate_model_masri()
+  3. load_production_data      Load recent prediction logs from WhyLogs JSONL;
+                               falls back to synthetic sample if no logs found
+  4. load_reference_data       Load reference (training) dataset for drift comparison
+  5. run_robustness_tests       4 adversarial/behavioral tests (obvious conflict,
+                               far vehicles, perturbation stability, priority consistency)
+  6. detect_drift              KS-test drift detection (scipy fallback — Python 3.11 compatible);
+                               generates reports/drift_report.html
+  7. continual_learning_decision  Trigger retraining if F1 < 0.70, drift detected,
+                               or robustness pass rate < 75%
+  8. log_monitoring_results    Log all metrics and decisions to MLflow under 'monitoring-run'
+
+Usage:
+  export $(grep -v '^#' .env | grep -v '^$' | xargs)
+  mlflow ui --port 5000 --backend-store-uri sqlite:///mlflow.db &
+  zenml login --local
+
+  MLFLOW_TRACKING_URI=http://localhost:5000 \\
+  PYTHONPATH=. python src/pipelines/monitoring_pipeline.py
+
+  # View results
+  open reports/drift_report.html        # Drift report
+  open http://localhost:5000            # MLflow dashboard
+  open http://127.0.0.1:8237           # ZenML pipeline DAG
+
+  # Run A/B test separately
+  MLFLOW_TRACKING_URI=http://localhost:5000 \\
+  PYTHONPATH=. python src/monitoring/ab_test.py
+
+  # Run explainability separately
+  MLFLOW_TRACKING_URI=http://localhost:5000 \\
+  PYTHONPATH=. python src/monitoring/explain.py
 """
 
 import os

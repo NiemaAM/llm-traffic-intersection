@@ -1,6 +1,6 @@
 """
-scripts/explain.py
-------------------
+src/monitoring/explain.py
+-------------------------
 Model explainability and interpretability for the fine-tuned LLM conflict detector.
 
 Three approaches:
@@ -10,7 +10,7 @@ Three approaches:
 
 Usage:
   MLFLOW_TRACKING_URI=http://localhost:5000 \
-  PYTHONPATH=. python scripts/explain.py
+  PYTHONPATH=. python src/monitoring/explain.py
 """
 
 from __future__ import annotations
@@ -22,11 +22,13 @@ from pathlib import Path
 
 import mlflow
 import pandas as pd
-
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-sys.path.insert(0, str(Path(__file__).parent.parent / "src" / "poc"))
-
 from dotenv import load_dotenv
+
+sys.path.insert(0, str(Path(__file__).parent.parent))  # Add project root
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))  # Add src directory
+
+# Change to project root directory
+os.chdir(Path(__file__).parent.parent.parent)
 
 load_dotenv(Path(__file__).parent.parent / ".env", override=False)
 

@@ -1,8 +1,35 @@
 """
-data_pipeline.py
-----------------
-ZenML pipeline for data ingestion, validation, and feature engineering.
+src/pipelines/data_pipeline.py
+--------------------------------
+ZenML pipeline for data ingestion, validation, feature engineering, and versioning.
 Milestone 3: Full data pipeline with Great Expectations + DVC + Feast.
+
+Steps
+-----
+  1. ingest_data           Generate synthetic intersection scenarios via generate_data.py
+                           (1000 scenarios, seed=42); output: data/raw/generated_dataset.csv
+  2. validate_data         Schema validation + Great Expectations suite;
+                           raises ValueError on failure to halt the pipeline
+  3. engineer_features     6 custom scikit-learn transformers:
+                           DirectionEncoder, ConflictFlagEncoder, WaitingTimeExtractor,
+                           PriorityExtractor, ScenarioAggFeatures, DropRawColumns
+                           + StandardScaler; output: data/processed/features.csv
+  4. version_data          DVC: track raw CSV, processed features, and scaler artifact
+  5. push_to_feature_store Feast: materialize vehicle and scenario features to
+                           local SQLite feature store for downstream training use
+
+Usage:
+  PYTHONPATH=. python src/pipelines/data_pipeline.py
+
+  # Generate dataset first if needed
+  PYTHONPATH=. python src/data/generate_data.py \\
+    --num-records 1000 --output data/raw/generated_dataset.csv --seed 42
+
+  # Validate data only
+  PYTHONPATH=. python src/data/validate_data.py
+
+  # View pipeline DAG
+  zenml login --local   # -> http://127.0.0.1:8237
 """
 
 from pathlib import Path

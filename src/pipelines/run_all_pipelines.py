@@ -7,25 +7,29 @@ Inspired by PseudoCodeRAG-Translator milestone structure.
 Usage
 -----
     # Run all pipelines
-    python scripts/run_all_pipelines.py
+    python src/pipelines/run_all_pipelines.py
 
     # Run specific milestone(s)
-    python scripts/run_all_pipelines.py --milestone 3
-    python scripts/run_all_pipelines.py --milestone 4
-    python scripts/run_all_pipelines.py --milestone 5
-    python scripts/run_all_pipelines.py --milestone 6
-    python scripts/run_all_pipelines.py --milestone 3 4
+    python src/pipelines/run_all_pipelines.py --milestone 3
+    python src/pipelines/run_all_pipelines.py --milestone 4
+    python src/pipelines/run_all_pipelines.py --milestone 5
+    python src/pipelines/run_all_pipelines.py --milestone 6
+    python src/pipelines/run_all_pipelines.py --milestone 3 4
 
-    # Enable fine-tuning in M4 (costs ~$1-2, takes 10-30 min)
-    python scripts/run_all_pipelines.py --milestone 4 --train
+    # Enable fine-tuning in M4 (costs ~$1-2 and may take 10-30 minutes)
+    python src/pipelines/run_all_pipelines.py --milestone 4 --train
+
+    # Run evaluation pipeline using an existing fine-tuned model
+    python src/pipelines/run_all_pipelines.py --run-eval
 
     # Quick mode (fewer scenarios, faster and cheaper)
-    python scripts/run_all_pipelines.py --quick
+    python src/pipelines/run_all_pipelines.py --quick
 
 Pipeline map
 ------------
     M3  data_pipeline      ingest → validate → features → DVC → Feast
-    M4  training_pipeline  prepare → zero-shot → few-shot → train → eval → compare → energy
+    M4  training_pipeline  prepare → train → register → energy
+    M4-eval evaluation_pipeline evaluate → rouge → charts
     M5  serving_pipeline   load_model → validate_api → tests → register
     M6  monitoring_pipeline drift → eval → robustness → bias → retrain_decision → log
 """
@@ -36,27 +40,30 @@ import argparse
 import os
 import sys
 import time
+import traceback
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 # ── Project root on path ──────────────────────────────────────────────────────
-ROOT = Path(__file__).parent.parent
+ROOT = Path(__file__).parent.parent.parent.resolve()
 sys.path.insert(0, str(ROOT))
 os.chdir(ROOT)
 
-from dotenv import load_dotenv
 load_dotenv()
 
 
 # ─── Colors for terminal output ───────────────────────────────────────────────
 
+
 class C:
-    BOLD   = "\033[1m"
-    GREEN  = "\033[92m"
+    BOLD = "\033[1m"
+    GREEN = "\033[92m"
     YELLOW = "\033[93m"
-    RED    = "\033[91m"
-    BLUE   = "\033[94m"
-    RESET  = "\033[0m"
-    CYAN   = "\033[96m"
+    RED = "\033[91m"
+    BLUE = "\033[94m"
+    RESET = "\033[0m"
+    CYAN = "\033[96m"
 
 
 def banner(text: str, color: str = C.BLUE) -> None:
@@ -66,13 +73,24 @@ def banner(text: str, color: str = C.BLUE) -> None:
     print(f"{'─' * width}{C.RESET}\n")
 
 
-def ok(text: str)   -> None: print(f"  {C.GREEN}✅ {text}{C.RESET}")
-def warn(text: str) -> None: print(f"  {C.YELLOW}⚠️  {text}{C.RESET}")
-def err(text: str)  -> None: print(f"  {C.RED}❌ {text}{C.RESET}")
-def info(text: str) -> None: print(f"  {C.CYAN}ℹ️  {text}{C.RESET}")
+def ok(text: str) -> None:
+    print(f"  {C.GREEN}✅ {text}{C.RESET}")
+
+
+def warn(text: str) -> None:
+    print(f"  {C.YELLOW}⚠️  {text}{C.RESET}")
+
+
+def err(text: str) -> None:
+    print(f"  {C.RED}❌ {text}{C.RESET}")
+
+
+def info(text: str) -> None:
+    print(f"  {C.CYAN}ℹ️  {text}{C.RESET}")
 
 
 # ─── Pre-flight checks ────────────────────────────────────────────────────────
+
 
 def preflight_checks(args) -> bool:
     banner("Pre-flight Checks", C.CYAN)
@@ -80,6 +98,7 @@ def preflight_checks(args) -> bool:
 
     # Python version
     import sys as _sys
+
     v = _sys.version_info
     if v >= (3, 11):
         ok(f"Python {v.major}.{v.minor}.{v.micro}")
@@ -108,6 +127,7 @@ def preflight_checks(args) -> bool:
     mlflow_uri = os.environ.get("MLFLOW_TRACKING_URI", "http://localhost:5000")
     try:
         import requests
+
         r = requests.get(mlflow_uri, timeout=3)
         ok(f"MLflow reachable at {mlflow_uri}")
     except Exception:
@@ -118,6 +138,7 @@ def preflight_checks(args) -> bool:
     # ZenML
     try:
         import zenml
+
         ok(f"ZenML {zenml.__version__}")
     except ImportError:
         err("ZenML not installed — pip install 'zenml[server]'")
@@ -127,6 +148,7 @@ def preflight_checks(args) -> bool:
     raw_csv = ROOT / "data" / "raw" / "generated_dataset.csv"
     if raw_csv.exists():
         import pandas as pd
+
         df = pd.read_csv(raw_csv)
         ok(f"Raw dataset exists ({len(df)} rows)")
     else:
@@ -137,6 +159,7 @@ def preflight_checks(args) -> bool:
 
 
 # ─── Individual pipeline runners ──────────────────────────────────────────────
+
 
 def run_m3(args) -> bool:
     banner("Milestone 3 — Data Pipeline", C.GREEN)
@@ -158,28 +181,29 @@ def run_m3(args) -> bool:
 
     except Exception as exc:
         err(f"M3 failed: {exc}")
-        import traceback; traceback.print_exc()
+        traceback.print_exc()
         return False
 
 
 def run_m4(args) -> bool:
     banner("Milestone 4 — Training Pipeline", C.YELLOW)
-    info("Steps: prepare_data → zero-shot → few-shot → train → eval → compare → energy")
-    if args.train:
-        warn("Fine-tuning ENABLED — this will cost ~$1-2 and take 10-30 minutes")
+    info("Steps: prepare → train → register → energy")
+    fine_tune = args.train and not args.skip_fine_tuning
+    if args.train and args.skip_fine_tuning:
+        warn("Both --train and --skip-fine-tuning were set; skipping forced retraining")
+    if fine_tune:
+        warn("Fine-tuning ENABLED — this may cost ~$1-2 and take 10-30 minutes")
     else:
-        info("Fine-tuning SKIPPED (pass --train to enable)")
+        info("Fine-tuning not forced — existing FINE_TUNED_MODEL_ID will be used if available")
     print()
 
     try:
         from src.pipelines.training_pipeline import training_pipeline
 
         training_pipeline(
-            model_name=os.environ.get("MODEL_NAME", "gpt-4o-mini"),
-            max_scenarios=args.max_scenarios,
-            skip_training=not args.train,
-            max_examples=args.max_examples,
-            n_epochs=3,
+            raw_csv=args.raw_csv,
+            force_train=fine_tune,
+            target_size=args.target_size,
         )
         ok("M4 Training Pipeline completed")
         info(f"View results: {os.environ.get('MLFLOW_TRACKING_URI', 'http://localhost:5000')}")
@@ -188,20 +212,50 @@ def run_m4(args) -> bool:
 
     except Exception as exc:
         err(f"M4 failed: {exc}")
-        import traceback; traceback.print_exc()
+        traceback.print_exc()
+        return False
+
+
+def run_evaluation(args) -> bool:
+    banner("Evaluation Pipeline", C.YELLOW)
+    info("Steps: prepare → evaluate → rouge → charts")
+    if args.skip_rouge_l:
+        warn("ROUGE-L scoring disabled for evaluation")
+    if args.use_csv:
+        info(f"Using existing evaluation CSV: {args.use_csv}")
+    print()
+
+    try:
+        from src.pipelines.evaluation_pipeline import evaluation_pipeline
+
+        evaluation_pipeline(
+            n_scenarios=args.max_scenarios,
+            eval_seed=args.eval_seed,
+            use_csv=args.use_csv,
+            skip_rouge_l=args.skip_rouge_l,
+        )
+        ok("Evaluation Pipeline completed")
+        info("Check artifacts: reports/evaluation_summary.json")
+        info("                 reports/figures/")
+        return True
+
+    except Exception as exc:
+        err(f"Evaluation failed: {exc}")
+        traceback.print_exc()
         return False
 
 
 def run_m5(args) -> bool:
     banner("Milestone 5 — Serving Pipeline", C.CYAN)
     api_url = os.environ.get("API_URL", "http://localhost:8000")
-    info(f"Steps: load_model → validate_api → integration_tests → register_serving")
+    info("Steps: load_model → validate_api → integration_tests → register_serving")
     info(f"API URL: {api_url}")
     print()
 
     # Check API is running
     try:
         import requests
+
         r = requests.get(f"{api_url}/health", timeout=5)
         if r.status_code != 200:
             warn(f"API returned {r.status_code} — is the FastAPI server running?")
@@ -222,7 +276,7 @@ def run_m5(args) -> bool:
 
     except Exception as exc:
         err(f"M5 failed: {exc}")
-        import traceback; traceback.print_exc()
+        traceback.print_exc()
         return False
 
 
@@ -245,11 +299,12 @@ def run_m6(args) -> bool:
 
     except Exception as exc:
         err(f"M6 failed: {exc}")
-        import traceback; traceback.print_exc()
+        traceback.print_exc()
         return False
 
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -257,25 +312,72 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python scripts/run_all_pipelines.py                        # run all pipelines
-  python scripts/run_all_pipelines.py --milestone 3          # M3 only
-  python scripts/run_all_pipelines.py --milestone 4 --train  # M4 with fine-tuning
-  python scripts/run_all_pipelines.py --milestone 4 6        # M4 and M6
-  python scripts/run_all_pipelines.py --quick                # all, fewer scenarios
-        """
+  python src/pipelines/run_all_pipelines.py                        # run all pipelines
+  python src/pipelines/run_all_pipelines.py --milestone 3          # M3 only
+  python src/pipelines/run_all_pipelines.py --milestone 4 --train  # M4 with fine-tuning
+  python src/pipelines/run_all_pipelines.py --run-eval             # evaluation pipeline only
+  python src/pipelines/run_all_pipelines.py --milestone 4 6        # M4 and M6
+  python src/pipelines/run_all_pipelines.py --quick                # all, fewer scenarios
+  python src/pipelines/run_all_pipelines.py --dry-run              # test setup without running pipelines
+        """,
     )
-    parser.add_argument("--milestone",    nargs="+", type=int, default=[3,4,5,6],
-                        help="Which milestones to run (default: 3 4 5 6)")
-    parser.add_argument("--train",        action="store_true",
-                        help="Enable fine-tuning in M4 (costs ~$1-2)")
-    parser.add_argument("--quick",        action="store_true",
-                        help="Quick mode: fewer scenarios (faster and cheaper)")
-    parser.add_argument("--num-records",  type=int, default=1000,
-                        help="Records to generate in M3 (default: 1000)")
-    parser.add_argument("--max-scenarios",type=int, default=None,
-                        help="Evaluation scenarios per run (default: 20, quick: 5)")
-    parser.add_argument("--max-examples", type=int, default=500,
-                        help="Max fine-tuning examples (default: 500)")
+    parser.add_argument(
+        "--milestone",
+        nargs="+",
+        type=int,
+        default=[3, 4, 5, 6],
+        help="Which milestones to run (default: 3 4 5 6)",
+    )
+    parser.add_argument(
+        "--train",
+        action="store_true",
+        help="Force fine-tuning in M4, even if an existing model ID exists",
+    )
+    parser.add_argument(
+        "--skip-fine-tuning",
+        "--skip-fine-tunning",
+        action="store_true",
+        help="Do not force retrain; use existing fine-tuned model if available",
+    )
+    parser.add_argument(
+        "--skip-rouge-l",
+        action="store_true",
+        help="Skip ROUGE-L scoring and ROUGE chart generation in evaluation",
+    )
+    parser.add_argument(
+        "--run-eval",
+        action="store_true",
+        help="Run the evaluation pipeline after selected milestones",
+    )
+    parser.add_argument(
+        "--quick", action="store_true", help="Quick mode: fewer scenarios (faster and cheaper)"
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Test mode: run pre-flight checks and validate setup without executing pipelines",
+    )
+    parser.add_argument(
+        "--num-records", type=int, default=1000, help="Records to generate in M3 (default: 1000)"
+    )
+    parser.add_argument(
+        "--max-scenarios",
+        type=int,
+        default=None,
+        help="Evaluation scenarios per run (default: 20, quick: 5)",
+    )
+    parser.add_argument(
+        "--raw-csv",
+        default="data/raw/generated_dataset.csv",
+        help="Raw CSV path for M3/M4 pipelines",
+    )
+    parser.add_argument(
+        "--target-size", type=int, default=5000, help="Target training dataset size for M4"
+    )
+    parser.add_argument("--eval-seed", type=int, default=999, help="Evaluation random seed")
+    parser.add_argument(
+        "--use-csv", default="", help="Path to existing evaluation CSV for the evaluation pipeline"
+    )
     parser.add_argument("--skip-preflight", action="store_true")
 
     args = parser.parse_args()
@@ -297,7 +399,11 @@ Examples:
     print(f"  Milestones to run : {args.milestones}")
     print(f"  Max scenarios     : {args.max_scenarios}")
     print(f"  Fine-tuning       : {'Enabled' if args.train else 'Skipped'}")
+    print(f"  Skip fine-tuning  : {'Yes' if args.skip_fine_tuning else 'No'}")
+    print(f"  Skip ROUGE-L      : {'Yes' if args.skip_rouge_l else 'No'}")
+    print(f"  Run evaluation    : {'Yes' if args.run_eval else 'No'}")
     print(f"  Quick mode        : {'Yes' if args.quick else 'No'}")
+    print(f"  Dry run           : {'Yes' if args.dry_run else 'No'}")
 
     # ── Pre-flight ────────────────────────────────────────────────────────────
     if not args.skip_preflight:
@@ -305,10 +411,24 @@ Examples:
             print(f"\n{C.RED}Pre-flight checks failed. Fix the issues above and retry.{C.RESET}\n")
             sys.exit(1)
 
+    # ── Dry run mode ──────────────────────────────────────────────────────────
+    if args.dry_run:
+        banner("Dry Run Complete", C.GREEN)
+        info("All pre-flight checks passed!")
+        info("Configuration and dependencies are ready for pipeline execution.")
+        info("Remove --dry-run flag to execute the actual pipelines.")
+        print(f"\n{C.GREEN}✅ Setup validation successful{C.RESET}\n")
+        sys.exit(0)
+
     # ── Run pipelines ─────────────────────────────────────────────────────────
     RUNNERS = {3: run_m3, 4: run_m4, 5: run_m5, 6: run_m6}
-    NAMES   = {3: "M3 Data Pipeline", 4: "M4 Training Pipeline",
-               5: "M5 Serving Pipeline", 6: "M6 Monitoring Pipeline"}
+    NAMES = {
+        3: "M3 Data Pipeline",
+        4: "M4 Training Pipeline",
+        5: "M5 Serving Pipeline",
+        6: "M6 Monitoring Pipeline",
+        "eval": "Evaluation Pipeline",
+    }
 
     results = {}
     t_start = time.time()
@@ -326,16 +446,25 @@ Examples:
         status = f"{C.GREEN}PASSED{C.RESET}" if success else f"{C.RED}FAILED{C.RESET}"
         print(f"\n  {NAMES[milestone]}: {status}  ({elapsed:.1f}s)\n")
 
+    if args.run_eval:
+        t0 = time.time()
+        success = run_evaluation(args)
+        elapsed = time.time() - t0
+        results["eval"] = {"success": success, "elapsed": elapsed}
+        status = f"{C.GREEN}PASSED{C.RESET}" if success else f"{C.RED}FAILED{C.RESET}"
+        print(f"\n  {NAMES['eval']}: {status}  ({elapsed:.1f}s)\n")
+
     # ── Summary ───────────────────────────────────────────────────────────────
     total_elapsed = time.time() - t_start
     banner("Pipeline Summary", C.BOLD)
 
     all_passed = True
     for milestone, result in results.items():
-        icon   = "✅" if result["success"] else "❌"
+        icon = "✅" if result["success"] else "❌"
         status = "PASSED" if result["success"] else "FAILED"
-        color  = C.GREEN if result["success"] else C.RED
-        print(f"  {icon}  {NAMES[milestone]:<30} {color}{status}{C.RESET}  ({result['elapsed']:.1f}s)")
+        color = C.GREEN if result["success"] else C.RED
+        label = NAMES[milestone] if milestone in NAMES else str(milestone)
+        print(f"  {icon}  {label:<30} {color}{status}{C.RESET}  ({result['elapsed']:.1f}s)")
         if not result["success"]:
             all_passed = False
 
@@ -346,10 +475,12 @@ Examples:
     else:
         failed = [NAMES[m] for m, r in results.items() if not r["success"]]
         print(f"\n{C.YELLOW}  ⚠️  Some pipelines failed: {', '.join(failed)}{C.RESET}")
-        print(f"  Check the output above for details.\n")
+        print("  Check the output above for details.\n")
 
-    print(f"  📊 MLflow dashboard : {os.environ.get('MLFLOW_TRACKING_URI', 'http://localhost:5000')}")
-    print(f"  🔍 ZenML dashboard  : http://127.0.0.1:8237")
+    print(
+        f"  📊 MLflow dashboard : {os.environ.get('MLFLOW_TRACKING_URI', 'http://localhost:5000')}"
+    )
+    print("  🔍 ZenML dashboard  : http://127.0.0.1:8237")
     print()
 
 

@@ -1,14 +1,42 @@
 """
-serving_pipeline.py  —  Milestone 5
---------------------------------------
+src/pipelines/serving_pipeline.py  —  Milestone 5
+----------------------------------------------------
 ZenML pipeline: model packaging, API health check, and serving registration.
 
 Steps
 -----
-  1. load_best_model       Read best model config from MLflow model-comparison run
-  2. validate_api          POST a test request to the FastAPI service; verify response
-  3. run_api_tests         Run the full pytest integration test suite against live API
-  4. register_serving      Log the serving endpoint URL + model config to MLflow
+  1. load_best_model       Read best model config from MLflow 'model-comparison' run;
+                           resolves fine-tuned model ID from FINE_TUNED_MODEL_ID env var
+                           (ft:gpt-4o-mini-2024-07-18:personal::DX7kzKtB)
+  2. validate_api          POST a test request to FastAPI at /predict; verify /health;
+                           measures latency in ms
+  3. run_api_tests         Run full pytest integration test suite against live API;
+                           12/12 tests expected to pass
+  4. register_serving      Log serving endpoint URL, model config, latency,
+                           and test results to MLflow under 'serving-registration' run
+
+Usage:
+  # Start FastAPI first
+  export $(grep -v '^#' .env | grep -v '^$' | xargs)
+  PYTHONPATH=. uvicorn src.api.app:app --port 8000 &
+
+  # Run serving pipeline
+  MLFLOW_TRACKING_URI=http://localhost:5000 \\
+  PYTHONPATH=. python src/pipelines/serving_pipeline.py
+
+  # Test API manually
+  curl -X POST http://localhost:8000/predict \\
+    -H "Content-Type: application/json" \\
+    -d '{"vehicles":[
+      {"vehicle_id":"V001","lane":1,"speed":50,"distance_to_intersection":100,
+       "direction":"north","destination":"F"},
+      {"vehicle_id":"V002","lane":3,"speed":50,"distance_to_intersection":100,
+       "direction":"east","destination":"B"}
+    ]}'
+
+  # Deploy to HuggingFace
+  export HF_TOKEN=hf_...
+  python scripts/deploy_hf.py
 """
 
 import os

@@ -70,3 +70,7 @@ Thumbs.db
 
 # Windows Zone.Identifier metadata files
 *.Zone.Identifier
+mlflow.db
+mlruns/
+.env
+mlartifacts/

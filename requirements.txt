@@ -46,6 +46,7 @@ pydantic>=2.7.0
 # ── Frontend ───────────────────────────────────────────────────────────────────
 streamlit>=1.35.0
 plotly>=5.20.0              # required for animated intersection visualizations
+kaleido==0.2.1
 
 # ── Monitoring ─────────────────────────────────────────────────────────────────
 evidently>=0.4.30

@@ -59,9 +59,10 @@ llm-traffic-intersection/
 │   └── references.bib       # BibTeX references
 ├── reports/                 # Evaluation reports, drift reports
 ├── scripts/
-│   ├── deploy_hf.py         # Manual HuggingFace Space deployment
-│   └── run_all_pipelines.py # Master pipeline runner
+│   └── deploy_hf.py         # Manual HuggingFace Space deployment
 ├── src/
+│   ├── pipelines/
+│   │   └── run_all_pipelines.py # Master pipeline runner
 │   ├── poc/
 │   │   ├── conflict_detection_orig.py  # Original rule-based engine (Masri et al.)
 │   │   ├── visualization_orig.py       # Animated Plotly visualization
@@ -307,11 +308,11 @@ PYTHONPATH=. python src/pipelines/monitoring_pipeline.py
 
 # Run M6 A/B test
 MLFLOW_TRACKING_URI=http://localhost:5000 \
-PYTHONPATH=. python scripts/ab_test.py
+PYTHONPATH=. python src/monitoring/ab_test.py
 
 # Run M6 explainability
 MLFLOW_TRACKING_URI=http://localhost:5000 \
-PYTHONPATH=. python scripts/explain.py
+PYTHONPATH=. python src/monitoring/explain.py
 ```
 
 ---
@@ -1032,7 +1033,7 @@ Ensure the deployed model remains safe, unbiased, and performant over time.
 ### Steps Followed
 
 1. Built `evaluate_model_masri()` for leakage-free held-out test evaluation on `data/masri_finetune/eval_only_masri.csv` (248 scenarios, seed=999, never seen during training).
-2. Implemented and ran A/B test (`scripts/ab_test.py`) comparing base GPT-4o-mini vs fine-tuned `DX7kzKtB` using scipy `chi2_contingency`.
+2. Implemented and ran A/B test (`src/monitoring/ab_test.py`) comparing base GPT-4o-mini vs fine-tuned `DX7kzKtB` using scipy `chi2_contingency`.
 3. Implemented 4 robustness / adversarial tests (`RobustnessTests`).
 4. Implemented bias audit across vehicle direction groups (`audit_bias`).
 5. Built drift detection with scipy KS-test fallback — compatible with Python 3.11.
@@ -1055,11 +1056,11 @@ PYTHONPATH=. python src/pipelines/monitoring_pipeline.py
 
 # Run A/B test
 MLFLOW_TRACKING_URI=http://localhost:5000 \
-PYTHONPATH=. python scripts/ab_test.py
+PYTHONPATH=. python src/monitoring/ab_test.py
 
 # Run explainability
 MLFLOW_TRACKING_URI=http://localhost:5000 \
-PYTHONPATH=. python scripts/explain.py
+PYTHONPATH=. python src/monitoring/explain.py
 
 # View drift report
 open reports/drift_report.html
@@ -1085,7 +1086,7 @@ docker compose -f deployment/docker/docker-compose.yml up -d grafana prometheus
 | F1 | 96.00% |
 | FNR | 0.00% |
 
-**A/B Test** (`scripts/ab_test.py`) — base model vs fine-tuned, 30 scenarios each, scipy `chi2_contingency`:
+**A/B Test** (`src/monitoring/ab_test.py`) — base model vs fine-tuned, 30 scenarios each, scipy `chi2_contingency`:
 
 | Metric | Model A (gpt-4o-mini base) | Model B (fine-tuned DX7kzKtB) |
 |---|---|---|
