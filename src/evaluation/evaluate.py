@@ -5,10 +5,24 @@ Comprehensive model evaluation: accuracy, robustness, bias auditing.
 Milestone 6: Testing beyond accuracy with adversarial and behavioral tests.
 """
 
+import json
+import os
 import random
+from pathlib import Path
 from typing import Any
 
 import pandas as pd
+
+# ─── Paths ────────────────────────────────────────────────────────────────────
+
+# Repo root = two levels up from src/evaluation/evaluate.py
+REPO_ROOT = Path(__file__).resolve().parents[2]
+REPORTS_DIR = REPO_ROOT / "reports"
+
+
+def _ensure_reports_dir() -> None:
+    REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+
 
 # ─── Standard evaluation ──────────────────────────────────────────────────────
 
@@ -19,8 +33,6 @@ def evaluate_model_masri(
     max_scenarios: int = 100,
 ) -> dict:
     """Evaluate on masri-format test_scenarios.csv (scenario JSON column)."""
-    import json
-
     from sklearn.metrics import (
         accuracy_score,
         confusion_matrix,
@@ -44,7 +56,14 @@ def evaluate_model_masri(
         except Exception:
             pass
     if not y_true:
-        return {"accuracy": 0, "precision": 0, "recall": 0, "f1": 0, "fnr": 1.0, "n_evaluated": 0}
+        return {
+            "accuracy": 0,
+            "precision": 0,
+            "recall": 0,
+            "f1": 0,
+            "fnr": 1.0,
+            "n_evaluated": 0,
+        }
     cm = confusion_matrix(y_true, y_pred, labels=[0, 1])
     tn, fp, fn, tp = cm.ravel() if cm.size == 4 else (0, 0, 0, 0)
     recall = recall_score(y_true, y_pred, pos_label=1, zero_division=0)
@@ -277,14 +296,18 @@ def audit_bias(
     model,
     protected_attribute: str = "direction",
     max_scenarios_per_group: int = 20,
+    output_path: str | None = None,
 ) -> dict[str, Any]:
     """
     Audit model for bias across direction groups.
     Checks that conflict detection rate and accuracy are similar across all directions.
+
+    Results are saved to reports/bias_audit_report.json (or output_path if provided)
+    and logged to MLflow if an active run exists.
     """
     df = pd.read_csv(raw_csv)
     groups = df[protected_attribute].unique()
-    group_metrics = {}
+    group_metrics: dict[str, Any] = {}
 
     for group_val in groups:
         group_df = df[df[protected_attribute] == group_val]
@@ -312,27 +335,151 @@ def audit_bias(
                 pass
 
         if y_true:
-            from sklearn.metrics import accuracy_score, f1_score
+            from sklearn.metrics import accuracy_score, f1_score, recall_score
 
+            recall = recall_score(y_true, y_pred, zero_division=0)
+            fn_count = sum(1 for t, p in zip(y_true, y_pred) if t == 1 and p == 0)
+            tp_count = sum(1 for t, p in zip(y_true, y_pred) if t == 1 and p == 1)
             group_metrics[str(group_val)] = {
                 "n": len(y_true),
-                "accuracy": accuracy_score(y_true, y_pred),
-                "f1": f1_score(y_true, y_pred, zero_division=0),
-                "conflict_rate": sum(y_pred) / len(y_pred),
+                "accuracy": round(accuracy_score(y_true, y_pred), 4),
+                "f1": round(f1_score(y_true, y_pred, zero_division=0), 4),
+                "recall": round(recall, 4),
+                "fnr": round(fn_count / (fn_count + tp_count + 1e-10), 4),
+                "conflict_rate": round(sum(y_pred) / len(y_pred), 4),
             }
 
-    # Compute disparity
+    # Compute disparity across groups
     if group_metrics:
         f1_values = [v["f1"] for v in group_metrics.values()]
-        disparity = max(f1_values) - min(f1_values)
-        bias_detected = disparity > 0.15
+        acc_values = [v["accuracy"] for v in group_metrics.values()]
+        fnr_values = [v["fnr"] for v in group_metrics.values()]
+        f1_disparity = round(max(f1_values) - min(f1_values), 4)
+        acc_disparity = round(max(acc_values) - min(acc_values), 4)
+        fnr_disparity = round(max(fnr_values) - min(fnr_values), 4)
+        bias_detected = f1_disparity > 0.15
     else:
-        disparity = None
+        f1_disparity = acc_disparity = fnr_disparity = None
         bias_detected = False
 
-    return {
+    report = {
         "protected_attribute": protected_attribute,
         "group_metrics": group_metrics,
-        "f1_disparity": disparity,
+        "f1_disparity": f1_disparity,
+        "acc_disparity": acc_disparity,
+        "fnr_disparity": fnr_disparity,
         "bias_detected": bias_detected,
+        "bias_threshold": 0.15,
+        "summary": (
+            f"Bias {'DETECTED' if bias_detected else 'NOT detected'}: "
+            f"max F1 gap across {protected_attribute} groups = {f1_disparity}"
+        ),
     }
+
+    # ── FIX: persist the report to disk ───────────────────────────────────────
+    _ensure_reports_dir()
+    save_path = Path(output_path) if output_path else REPORTS_DIR / "bias_audit_report.json"
+    with open(save_path, "w", encoding="utf-8") as f:
+        json.dump(report, f, indent=2)
+    print(f"[bias audit] Report saved → {save_path}")
+
+    # ── FIX: log to MLflow if an active run exists ─────────────────────────────
+    try:
+        import mlflow
+
+        if mlflow.active_run():
+            mlflow.log_dict(report, "bias_audit_report.json")
+            if f1_disparity is not None:
+                mlflow.log_metric("bias_f1_disparity", f1_disparity)
+                mlflow.log_metric("bias_acc_disparity", acc_disparity)
+                mlflow.log_metric("bias_fnr_disparity", fnr_disparity)
+                mlflow.log_metric("bias_detected", int(bias_detected))
+            print("[bias audit] Metrics logged to MLflow")
+    except ImportError:
+        pass  # MLflow not installed — skip silently
+
+    return report
+
+
+# ─── CLI entrypoint ───────────────────────────────────────────────────────────
+
+if __name__ == "__main__":
+    import argparse
+
+    import mlflow
+
+    parser = argparse.ArgumentParser(description="Run bias audit on the traffic intersection model")
+    parser.add_argument(
+        "--csv",
+        default=str(REPO_ROOT / "data" / "raw" / "generated_dataset.csv"),
+        help="Path to raw dataset CSV",
+    )
+    parser.add_argument(
+        "--attribute",
+        default="direction",
+        choices=["direction", "lane"],
+        help="Protected attribute to audit across (default: direction)",
+    )
+    parser.add_argument(
+        "--max-per-group",
+        type=int,
+        default=20,
+        help="Max scenarios evaluated per group (default: 20)",
+    )
+    parser.add_argument(
+        "--output",
+        default=None,
+        help="Override output JSON path (default: reports/bias_audit_report.json)",
+    )
+    parser.add_argument(
+        "--mlflow-uri",
+        default=os.environ.get("MLFLOW_TRACKING_URI", "http://localhost:5000"),
+        help="MLflow tracking URI",
+    )
+    args = parser.parse_args()
+
+    # ── Load model ────────────────────────────────────────────────────────────
+    import sys
+
+    sys.path.insert(0, str(REPO_ROOT))
+    from src.models.llm_model import IntersectionLLM  # type: ignore
+
+    model = IntersectionLLM()
+
+    # ── Run inside an MLflow run ───────────────────────────────────────────────
+    mlflow.set_tracking_uri(args.mlflow_uri)
+    mlflow.set_experiment("traffic-intersection-llm")
+
+    with mlflow.start_run(run_name=f"bias-audit-{args.attribute}"):
+        mlflow.log_param("protected_attribute", args.attribute)
+        mlflow.log_param("max_scenarios_per_group", args.max_per_group)
+        mlflow.log_param("csv", args.csv)
+
+        report = audit_bias(
+            raw_csv=args.csv,
+            model=model,
+            protected_attribute=args.attribute,
+            max_scenarios_per_group=args.max_per_group,
+            output_path=args.output,
+        )
+
+    # ── Print summary ──────────────────────────────────────────────────────────
+    print("\n" + "=" * 60)
+    print(f"BIAS AUDIT — {args.attribute.upper()}")
+    print("=" * 60)
+    for group, metrics in report["group_metrics"].items():
+        print(
+            f"  {group:10s}  n={metrics['n']:3d}  "
+            f"acc={metrics['accuracy']:.3f}  "
+            f"f1={metrics['f1']:.3f}  "
+            f"recall={metrics['recall']:.3f}  "
+            f"fnr={metrics['fnr']:.3f}  "
+            f"conflict_rate={metrics['conflict_rate']:.3f}"
+        )
+    print("-" * 60)
+    print(f"  F1 disparity : {report['f1_disparity']}")
+    print(f"  Acc disparity: {report['acc_disparity']}")
+    print(f"  FNR disparity: {report['fnr_disparity']}")
+    print(f"  Bias detected: {report['bias_detected']}  (threshold = {report['bias_threshold']})")
+    print("=" * 60)
+    print(f"\nFull report: {REPORTS_DIR / 'bias_audit_report.json'}")
