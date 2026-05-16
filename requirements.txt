@@ -74,3 +74,14 @@ isort>=5.13.0
 # ── Utilities ──────────────────────────────────────────────────────────────────
 python-dotenv>=1.0.0        # .env file loading
 requests>=2.31.0
+
+# ── Phoenix (Arize) observability ───────────────────────────────────────────────
+arize-phoenix>=4.0.0
+arize-phoenix-otel>=0.1.0
+openinference-instrumentation-openai>=0.1.17
+opentelemetry-sdk>=1.20.0
+opentelemetry-exporter-otlp-proto-http>=1.20.0
+
+# ── Visualisation (static plots) ───────────────────────────────────────────────
+matplotlib>=3.8.0
+seaborn>=0.13.0

@@ -1,0 +1,126 @@
+{
+  "generated_at": "2026-05-16T21:38:31.951061",
+  "model": "ft:gpt-4o-mini-2024-07-18:personal::DX7kzKtB",
+  "n_scenarios": 25,
+  "overall_stability": 0.9552,
+  "feature_summaries": {
+    "speed": {
+      "total_tests": 250,
+      "flip_count": 10,
+      "flip_rate": 0.04,
+      "delta_flip_rates": {
+        "-40": 0.04,
+        "-20": 0.04,
+        "-10": 0.04,
+        "-5": 0.04,
+        "-2": 0.04,
+        "2": 0.04,
+        "5": 0.04,
+        "10": 0.04,
+        "20": 0.04,
+        "40": 0.04
+      }
+    },
+    "distance": {
+      "total_tests": 250,
+      "flip_count": 46,
+      "flip_rate": 0.184,
+      "delta_flip_rates": {
+        "-100": 0.04,
+        "-50": 0.04,
+        "-25": 0.0,
+        "-10": 0.0,
+        "-5": 0.0,
+        "5": 0.04,
+        "10": 0.12,
+        "25": 0.28,
+        "50": 0.64,
+        "100": 0.68
+      }
+    },
+    "lane": {
+      "total_tests": 141,
+      "flip_count": 0,
+      "flip_rate": 0.0,
+      "delta_flip_rates": {
+        "0": 0.0,
+        "1": 0.0,
+        "2": 0.0,
+        "3": 0.0,
+        "4": 0.0,
+        "5": 0.0,
+        "6": 0.0,
+        "7": 0.0
+      }
+    },
+    "destination": {
+      "total_tests": 423,
+      "flip_count": 0,
+      "flip_rate": 0.0,
+      "delta_flip_rates": {
+        "0": 0.0,
+        "1": 0.0,
+        "2": 0.0
+      }
+    },
+    "vehicle_order": {
+      "total_tests": 92,
+      "flip_count": 0,
+      "flip_rate": 0.0,
+      "delta_flip_rates": {
+        "reverse": 0.0,
+        "shuffle": 0.0
+      }
+    }
+  },
+  "feature_ranking_by_sensitivity": [
+    "distance",
+    "speed",
+    "lane",
+    "destination",
+    "vehicle_order"
+  ],
+  "example_speed_table": [
+    {
+      "feature": "speed",
+      "delta": "+2 km/h",
+      "flip_rate": 0.04,
+      "example": "40 km/h \u2192 42 km/h",
+      "decision_changed": "No (stable)"
+    },
+    {
+      "feature": "speed",
+      "delta": "+5 km/h",
+      "flip_rate": 0.04,
+      "example": "40 km/h \u2192 45 km/h",
+      "decision_changed": "No (stable)"
+    },
+    {
+      "feature": "speed",
+      "delta": "+10 km/h",
+      "flip_rate": 0.04,
+      "example": "40 km/h \u2192 50 km/h",
+      "decision_changed": "No (stable)"
+    },
+    {
+      "feature": "speed",
+      "delta": "+20 km/h",
+      "flip_rate": 0.04,
+      "example": "40 km/h \u2192 60 km/h",
+      "decision_changed": "No (stable)"
+    },
+    {
+      "feature": "speed",
+      "delta": "+40 km/h",
+      "flip_rate": 0.04,
+      "example": "40 km/h \u2192 80 km/h",
+      "decision_changed": "No (stable)"
+    }
+  ],
+  "figures": [
+    "flip_vs_stability.png",
+    "perturbation_heatmap.png",
+    "sensitivity_by_feature.png",
+    "stability_curve_speed.png"
+  ]
+}

@@ -1,0 +1,299 @@
+{
+  "generated_at": "2026-05-16T21:42:39.322146",
+  "model": "ft:gpt-4o-mini-2024-07-18:personal::DX7kzKtB",
+  "max_per_group": 20,
+  "bias_threshold_f1": 0.15,
+  "bias_threshold_fnr": 0.15,
+  "audit": {
+    "direction": {
+      "group_metrics": {
+        "east": {
+          "n": 20,
+          "accuracy": 0.9,
+          "recall": 1.0,
+          "precision": 0.6,
+          "f1": 0.75,
+          "fnr": 0.0,
+          "wt_mae_s": 0.0,
+          "conflict_rate_true": 0.15,
+          "conflict_rate_pred": 0.25
+        },
+        "north": {
+          "n": 20,
+          "accuracy": 0.9,
+          "recall": 1.0,
+          "precision": 0.6,
+          "f1": 0.75,
+          "fnr": 0.0,
+          "wt_mae_s": 0.0,
+          "conflict_rate_true": 0.15,
+          "conflict_rate_pred": 0.25
+        },
+        "south": {
+          "n": 20,
+          "accuracy": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "f1": 1.0,
+          "fnr": 0.0,
+          "wt_mae_s": 0.0,
+          "conflict_rate_true": 0.3,
+          "conflict_rate_pred": 0.3
+        },
+        "west": {
+          "n": 20,
+          "accuracy": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "f1": 1.0,
+          "fnr": 0.0,
+          "wt_mae_s": 0.0,
+          "conflict_rate_true": 0.15,
+          "conflict_rate_pred": 0.15
+        }
+      },
+      "f1_disparity": 0.25,
+      "fnr_disparity": 0.0,
+      "acc_disparity": 0.1,
+      "bias_detected": true,
+      "safety_bias_detected": false
+    },
+    "lane_parity": {
+      "group_metrics": {
+        "left-turn": {
+          "n": 20,
+          "accuracy": 0.9,
+          "recall": 1.0,
+          "precision": 0.6,
+          "f1": 0.75,
+          "fnr": 0.0,
+          "wt_mae_s": 0.0,
+          "conflict_rate_true": 0.15,
+          "conflict_rate_pred": 0.25
+        },
+        "straight": {
+          "n": 20,
+          "accuracy": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "f1": 1.0,
+          "fnr": 0.0,
+          "wt_mae_s": 0.0,
+          "conflict_rate_true": 0.15,
+          "conflict_rate_pred": 0.15
+        }
+      },
+      "f1_disparity": 0.25,
+      "fnr_disparity": 0.0,
+      "acc_disparity": 0.1,
+      "bias_detected": true,
+      "safety_bias_detected": false
+    },
+    "vehicle_count": {
+      "group_metrics": {
+        "large (5-8)": {
+          "n": 20,
+          "accuracy": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "f1": 1.0,
+          "fnr": 0.0,
+          "wt_mae_s": 0.0,
+          "conflict_rate_true": 0.15,
+          "conflict_rate_pred": 0.15
+        },
+        "small (2-4)": {
+          "n": 20,
+          "accuracy": 0.95,
+          "recall": 0.0,
+          "precision": 0.0,
+          "f1": 0.0,
+          "fnr": 0.0,
+          "wt_mae_s": 0.0,
+          "conflict_rate_true": 0.0,
+          "conflict_rate_pred": 0.05
+        }
+      },
+      "f1_disparity": 1.0,
+      "fnr_disparity": 0.0,
+      "acc_disparity": 0.05,
+      "bias_detected": true,
+      "safety_bias_detected": false
+    },
+    "movement_type": {
+      "group_metrics": {
+        "left-turn": {
+          "n": 20,
+          "accuracy": 0.9,
+          "recall": 1.0,
+          "precision": 0.6,
+          "f1": 0.75,
+          "fnr": 0.0,
+          "wt_mae_s": 0.0,
+          "conflict_rate_true": 0.15,
+          "conflict_rate_pred": 0.25
+        },
+        "straight": {
+          "n": 20,
+          "accuracy": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "f1": 1.0,
+          "fnr": 0.0,
+          "wt_mae_s": 0.0,
+          "conflict_rate_true": 0.15,
+          "conflict_rate_pred": 0.15
+        }
+      },
+      "f1_disparity": 0.25,
+      "fnr_disparity": 0.0,
+      "acc_disparity": 0.1,
+      "bias_detected": true,
+      "safety_bias_detected": false
+    },
+    "speed_range": {
+      "group_metrics": {
+        "slow (<40)": {
+          "n": 20,
+          "accuracy": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "f1": 1.0,
+          "fnr": 0.0,
+          "wt_mae_s": 0.0,
+          "conflict_rate_true": 0.15,
+          "conflict_rate_pred": 0.15
+        },
+        "medium (40-70)": {
+          "n": 20,
+          "accuracy": 0.9,
+          "recall": 1.0,
+          "precision": 0.7143,
+          "f1": 0.8333,
+          "fnr": 0.0,
+          "wt_mae_s": 0.0,
+          "conflict_rate_true": 0.25,
+          "conflict_rate_pred": 0.35
+        },
+        "fast (>70)": {
+          "n": 20,
+          "accuracy": 0.95,
+          "recall": 1.0,
+          "precision": 0.75,
+          "f1": 0.8571,
+          "fnr": 0.0,
+          "wt_mae_s": 0.0,
+          "conflict_rate_true": 0.15,
+          "conflict_rate_pred": 0.2
+        }
+      },
+      "f1_disparity": 0.1667,
+      "fnr_disparity": 0.0,
+      "acc_disparity": 0.1,
+      "bias_detected": true,
+      "safety_bias_detected": false
+    },
+    "distance_range": {
+      "group_metrics": {
+        "near (<50m)": {
+          "n": 20,
+          "accuracy": 0.95,
+          "recall": 1.0,
+          "precision": 0.875,
+          "f1": 0.9333,
+          "fnr": 0.0,
+          "wt_mae_s": 0.0,
+          "conflict_rate_true": 0.35,
+          "conflict_rate_pred": 0.4
+        },
+        "mid (50-150m)": {
+          "n": 20,
+          "accuracy": 0.9,
+          "recall": 1.0,
+          "precision": 0.6,
+          "f1": 0.75,
+          "fnr": 0.0,
+          "wt_mae_s": 0.0,
+          "conflict_rate_true": 0.15,
+          "conflict_rate_pred": 0.25
+        },
+        "far (>150m)": {
+          "n": 20,
+          "accuracy": 0.85,
+          "recall": 0.0,
+          "precision": 0.0,
+          "f1": 0.0,
+          "fnr": 0.0,
+          "wt_mae_s": 0.0,
+          "conflict_rate_true": 0.0,
+          "conflict_rate_pred": 0.15
+        }
+      },
+      "f1_disparity": 0.9333,
+      "fnr_disparity": 0.0,
+      "acc_disparity": 0.1,
+      "bias_detected": true,
+      "safety_bias_detected": false
+    },
+    "conflict_density": {
+      "group_metrics": {
+        "multi (2+)": {
+          "n": 6,
+          "accuracy": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "f1": 1.0,
+          "fnr": 0.0,
+          "wt_mae_s": 0.0,
+          "conflict_rate_true": 1.0,
+          "conflict_rate_pred": 1.0
+        },
+        "no conflict": {
+          "n": 20,
+          "accuracy": 0.95,
+          "recall": 0.0,
+          "precision": 0.0,
+          "f1": 0.0,
+          "fnr": 0.0,
+          "wt_mae_s": 0.0,
+          "conflict_rate_true": 0.0,
+          "conflict_rate_pred": 0.05
+        },
+        "single": {
+          "n": 19,
+          "accuracy": 1.0,
+          "recall": 1.0,
+          "precision": 1.0,
+          "f1": 1.0,
+          "fnr": 0.0,
+          "wt_mae_s": 0.0,
+          "conflict_rate_true": 1.0,
+          "conflict_rate_pred": 1.0
+        }
+      },
+      "f1_disparity": 1.0,
+      "fnr_disparity": 0.0,
+      "acc_disparity": 0.05,
+      "bias_detected": true,
+      "safety_bias_detected": false
+    }
+  },
+  "biased_dimensions": [
+    "direction",
+    "lane_parity",
+    "vehicle_count",
+    "movement_type",
+    "speed_range",
+    "distance_range",
+    "conflict_density"
+  ],
+  "safety_biased_dimensions": [],
+  "overall_bias_detected": true,
+  "figures": [
+    "accuracy_by_vehicle_count.png",
+    "disparity_overview.png",
+    "fnr_by_direction.png",
+    "priority_conflict_rate_by_direction.png",
+    "waiting_time_error_by_group.png"
+  ]
+}

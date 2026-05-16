@@ -30,7 +30,7 @@ Usage:
   PYTHONPATH=. python src/pipelines/monitoring_pipeline.py
 
   # View results
-  open reports/drift_report.html        # Drift report
+  open reports/monitoring/drift_report.html  # Drift report
   open http://localhost:5000            # MLflow dashboard
   open http://127.0.0.1:8237           # ZenML pipeline DAG
 
@@ -69,7 +69,7 @@ def load_reference_data(
 
 @step
 def load_production_data(
-    log_path: str = "reports/whylogs/predictions_log.jsonl",
+    log_path: str = "reports/monitoring/predictions.jsonl",
 ) -> Annotated[pd.DataFrame, "production_data"]:
     """
     Load recent production prediction logs.
@@ -128,7 +128,7 @@ def detect_drift(
     report = compute_data_drift(
         numeric_ref[common_cols],
         numeric_prod[common_cols],
-        output_path="reports/drift_report.html",
+        output_path="reports/monitoring/drift_report.html",
     )
     logger.info(f"Drift report: {report}")
     return report
@@ -145,6 +145,7 @@ def evaluate_on_test_set(
 
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from evaluation.evaluate import evaluate_model_masri as evaluate_model
+
     from models.llm_model import IntersectionLLM
 
     ft_id = os.environ.get("FINE_TUNED_MODEL_ID", "")
@@ -171,6 +172,7 @@ def run_robustness_tests(
 
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from evaluation.evaluate import RobustnessTests
+
     from models.llm_model import IntersectionLLM
 
     ft_id = os.environ.get("FINE_TUNED_MODEL_ID", "")
@@ -199,6 +201,7 @@ def audit_model_bias(
 
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from evaluation.evaluate import audit_bias
+
     from models.llm_model import IntersectionLLM
 
     ft_id = os.environ.get("FINE_TUNED_MODEL_ID", "")
@@ -221,39 +224,40 @@ def continual_learning_decision(
     test_metrics: dict,
     drift_report: dict,
     robustness_report: dict,
-    f1_threshold: float = 0.70,
 ) -> Annotated[bool, "should_retrain"]:
     """
-    Decide whether to trigger retraining based on:
-    - F1 score below threshold
-    - Data drift detected
-    - Robustness pass rate below 75%
+    Decide whether to trigger retraining based on safety-first thresholds:
+      FNR > 0.08          Missed conflicts are safety-critical
+      Recall < 0.92       Model misses real conflicts
+      Drift detected      Input distribution shifted from training data
+      Robustness < 0.90   Model unstable under small perturbations
+      Rule agreement < 75%  Model may be right for the wrong reason
     """
-    import sys
-
-    sys.path.insert(0, str(Path(__file__).parent.parent))
-
-    f1 = test_metrics.get("f1", 1.0)
+    fnr = test_metrics.get("fnr", 0.0)
+    recall = test_metrics.get("recall", 1.0)
+    rule_agree = test_metrics.get("rule_agreement_rate", 1.0)
     drift = drift_report.get("drift_detected", False)
-    robustness_ok = robustness_report.get("pass_rate", 1.0) >= 0.75
+    robustness_pass = robustness_report.get("pass_rate", 1.0)
 
     reasons = []
-    should_retrain = False
 
-    if f1 < f1_threshold:
-        should_retrain = True
-        reasons.append(f"F1={f1:.4f} < threshold={f1_threshold}")
+    if fnr > 0.08:
+        reasons.append(f"FNR={fnr:.4f} > 0.08 (safety-critical)")
+    if recall < 0.92:
+        reasons.append(f"Recall={recall:.4f} < 0.92")
     if drift:
-        should_retrain = True
         reasons.append("Data drift detected")
-    if not robustness_ok:
-        should_retrain = True
-        reasons.append(f"Robustness pass rate={robustness_report.get('pass_rate',0):.2f} < 0.75")
+    if robustness_pass < 0.90:
+        reasons.append(f"Robustness pass rate={robustness_pass:.2f} < 0.90")
+    if rule_agree < 0.75:
+        reasons.append(f"Rule agreement={rule_agree:.4f} < 0.75")
+
+    should_retrain = len(reasons) > 0
 
     if should_retrain:
-        logger.warning(f"🔄 Retraining triggered: {'; '.join(reasons)}")
+        logger.warning(f"Retraining triggered: {'; '.join(reasons)}")
     else:
-        logger.info("✅ Model performance OK – no retraining needed")
+        logger.info("Model performance OK — no retraining needed")
 
     return should_retrain
 

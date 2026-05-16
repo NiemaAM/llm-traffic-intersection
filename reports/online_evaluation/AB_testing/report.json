@@ -1,0 +1,68 @@
+{
+  "generated_at": "2026-05-16T20:49:04.204835",
+  "n_scenarios": 50,
+  "traffic_split": {
+    "A_pct": 15,
+    "B_pct": 85
+  },
+  "models": {
+    "A": "gpt-4o-mini (few_shot=True, baseline)",
+    "B": "ft:gpt-4o-mini-2024-07-18:personal::DX7kzKtB"
+  },
+  "metrics_A": {
+    "variant": "A: gpt-4o-mini few-shot (baseline)",
+    "n": 50,
+    "accuracy": 0.82,
+    "recall": 0.8696,
+    "precision": 0.7692,
+    "f1": 0.8163,
+    "fnr": 0.1304,
+    "latency_p50_ms": 2833.8,
+    "latency_p95_ms": 4877.5,
+    "json_validity_rate": 1.0,
+    "fallback_rate": 0.0,
+    "wt_mae_s": 0.0,
+    "rule_disagree_rate": 0.52
+  },
+  "metrics_B": {
+    "variant": "B: fine-tuned DX7kzKtB",
+    "n": 50,
+    "accuracy": 0.96,
+    "recall": 0.9565,
+    "precision": 0.9565,
+    "f1": 0.9565,
+    "fnr": 0.0435,
+    "latency_p50_ms": 556.3,
+    "latency_p95_ms": 1068.3,
+    "json_validity_rate": 1.0,
+    "fallback_rate": 0.0,
+    "wt_mae_s": 0.0,
+    "rule_disagree_rate": 0.46
+  },
+  "statistical_significance": {
+    "test": "chi2_contingency",
+    "chi2": 3.6772,
+    "p_value": 0.0552,
+    "significant_at_0.05": false,
+    "latency_mannwhitney_p": 0.0
+  },
+  "winner": "B",
+  "recall_by_vehicle_count": {
+    "A": {
+      "small (2-4)": 0.6667,
+      "large (5-8)": 0.9
+    },
+    "B": {
+      "small (2-4)": 1.0,
+      "large (5-8)": 0.95
+    }
+  },
+  "figures": [
+    "accuracy_over_time.png",
+    "fnr_trend.png",
+    "latency_distribution.png",
+    "recall_by_vehicle_count.png",
+    "rule_disagreement_rate.png",
+    "waiting_time_mae.png"
+  ]
+}

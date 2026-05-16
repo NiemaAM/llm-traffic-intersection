@@ -1,0 +1,88 @@
+{
+  "generated_at": "2026-05-16T21:23:59.038336",
+  "model": "ft:gpt-4o-mini-2024-07-18:personal::DX7kzKtB",
+  "n_scenarios": 30,
+  "n_perturbation_scenarios": 20,
+  "accuracy": 0.9667,
+  "rule_agreement_rate": 0.5667,
+  "aggregate_importance": {
+    "speed": 0.0,
+    "distance": 0.022,
+    "lane": 0.0,
+    "destination": 0.0,
+    "vehicle_order": 0.0
+  },
+  "normalised_importance": {
+    "speed": 0.0,
+    "distance": 1.0,
+    "lane": 0.0,
+    "destination": 0.0,
+    "vehicle_order": 0.0
+  },
+  "feature_ranking": [
+    "distance",
+    "speed",
+    "lane",
+    "destination",
+    "vehicle_order"
+  ],
+  "priority_rules_seen": [
+    "arrival time",
+    "right-hand rule",
+    "no conflict"
+  ],
+  "avg_waiting_time_s": 0.0,
+  "sample_explanations": [
+    {
+      "true_label": "no",
+      "predicted_label": "no",
+      "conflict_reason": "The paths of V6091 (north) and V9936 (east) cross at the intersection.",
+      "priority_rule": "right-hand rule",
+      "priority_vehicle": "V6091",
+      "yield_vehicle": "V9936",
+      "waiting_time_reason": "V9936 must yield to V6091 as V6091 is traveling straight and arrives earlier."
+    },
+    {
+      "true_label": "yes",
+      "predicted_label": "yes",
+      "conflict_reason": "Vehicle V1309 (north) and Vehicle V3853 (east) are on a collision course as they approach the intersection.",
+      "priority_rule": "right-hand rule",
+      "priority_vehicle": "V3853",
+      "yield_vehicle": "V1309",
+      "waiting_time_reason": "Vehicle V1309 must yield to Vehicle V3853 as it is turning right and V3853 is traveling straight."
+    },
+    {
+      "true_label": "yes",
+      "predicted_label": "yes",
+      "conflict_reason": "Vehicle V4321 is traveling north in the same lane as V3599, but V4321 is approaching a different destination (B) while V3599 is heading to A. They do not conflict as they are in the same lane and direction.",
+      "priority_rule": "no conflict",
+      "priority_vehicle": null,
+      "yield_vehicle": null,
+      "waiting_time_reason": null
+    },
+    {
+      "true_label": "yes",
+      "predicted_label": "yes",
+      "conflict_reason": "Vehicle V3775 (east) and Vehicle V4282 (north) conflict as their paths cross at the intersection.",
+      "priority_rule": "right-hand rule",
+      "priority_vehicle": "V4282",
+      "yield_vehicle": "V3775",
+      "waiting_time_reason": "Vehicle V4282 is approaching from the right side of Vehicle V3775, thus it has the priority."
+    },
+    {
+      "true_label": "yes",
+      "predicted_label": "yes",
+      "conflict_reason": "Vehicle V4694 (east) and Vehicle V4926 (west) are on a collision course as their paths cross at the intersection.",
+      "priority_rule": "right-hand rule",
+      "priority_vehicle": "V4694",
+      "yield_vehicle": "V4926",
+      "waiting_time_reason": "Vehicle V4926 must yield to Vehicle V4694 as it is on the right side when facing the intersection."
+    }
+  ],
+  "figures": [
+    "conflict_reasoning_rules.png",
+    "feature_importance.png",
+    "sensitivity_heatmap.png",
+    "waiting_time_distribution.png"
+  ]
+}

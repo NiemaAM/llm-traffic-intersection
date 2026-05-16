@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Explainability Report — Traffic Intersection LLM</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 1100px; margin: 40px auto; color: #333; }
+    h1 { color: #2c3e50; } h2 { color: #34495e; border-bottom: 1px solid #ddd; padding-bottom: 6px; }
+    table { border-collapse: collapse; width: 100%; margin-bottom: 24px; font-size: 13px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background: #f5f5f5; }
+    .metric { display: inline-block; background: #ecf0f1; padding: 12px 20px; border-radius: 6px;
+               margin: 6px; text-align: center; }
+    .metric .val { font-size: 28px; font-weight: bold; color: #2980b9; }
+    .metric .lbl { font-size: 12px; color: #666; }
+    img { max-width: 100%; border: 1px solid #eee; border-radius: 4px; margin: 8px 0; }
+  </style>
+</head>
+<body>
+<h1>LLM Traffic Intersection — Explainability Report</h1>
+<p>Generated: 2026-05-16T21:23:59.038336 &nbsp;|&nbsp; Model: <code>ft:gpt-4o-mini-2024-07-18:personal::DX7kzKtB</code></p>
+
+<h2>Summary Metrics</h2>
+<div>
+  <div class="metric"><div class="val">0.967</div><div class="lbl">Accuracy</div></div>
+  <div class="metric"><div class="val">30</div><div class="lbl">Scenarios</div></div>
+  <div class="metric"><div class="val">0.567</div><div class="lbl">Rule Agreement</div></div>
+  <div class="metric"><div class="val">0.00s</div><div class="lbl">Avg Waiting Time</div></div>
+</div>
+
+<h2>Feature Importance (Perturbation Sensitivity)</h2>
+<table>
+  <tr><th>Feature</th><th>Importance</th><th>Score</th></tr>
+  <tr><td>distance</td><td><div style='background:#4E79A7;width:4px;height:18px;border-radius:3px'></div></td><td>0.0220</td></tr>
+<tr><td>speed</td><td><div style='background:#4E79A7;width:0px;height:18px;border-radius:3px'></div></td><td>0.0000</td></tr>
+<tr><td>lane</td><td><div style='background:#4E79A7;width:0px;height:18px;border-radius:3px'></div></td><td>0.0000</td></tr>
+<tr><td>destination</td><td><div style='background:#4E79A7;width:0px;height:18px;border-radius:3px'></div></td><td>0.0000</td></tr>
+<tr><td>vehicle_order</td><td><div style='background:#4E79A7;width:0px;height:18px;border-radius:3px'></div></td><td>0.0000</td></tr>
+
+</table>
+
+<h2>Plots</h2>
+<table><tr>
+  <td><img src="figures/feature_importance.png" alt="feature importance"></td>
+  <td><img src="figures/sensitivity_heatmap.png" alt="sensitivity heatmap"></td>
+</tr><tr>
+  <td><img src="figures/conflict_reasoning_rules.png" alt="rule distribution"></td>
+  <td><img src="figures/waiting_time_distribution.png" alt="waiting time dist"></td>
+</tr></table>
+
+<h2>Structured Explanations (30 scenarios)</h2>
+<table>
+  <tr><th>#</th><th>True</th><th>Pred</th><th>OK?</th>
+      <th>Conflict reason</th><th>Priority rule</th><th>Priority veh.</th><th>Yield veh.</th></tr>
+  <tr style='background:#d4edda'><td>0</td><td>no</td><td>no</td><td>✓</td><td>The paths of V6091 (north) and V9936 (east) cross at the intersection.…</td><td>right-hand rule</td><td>V6091</td><td>V9936</td></tr>
+<tr style='background:#d4edda'><td>1</td><td>yes</td><td>yes</td><td>✓</td><td>Vehicle V1309 (north) and Vehicle V3853 (east) are on a collision course as they…</td><td>right-hand rule</td><td>V3853</td><td>V1309</td></tr>
+<tr style='background:#d4edda'><td>2</td><td>yes</td><td>yes</td><td>✓</td><td>Vehicle V4321 is traveling north in the same lane as V3599, but V4321 is approac…</td><td>no conflict</td><td>—</td><td>—</td></tr>
+<tr style='background:#d4edda'><td>3</td><td>yes</td><td>yes</td><td>✓</td><td>Vehicle V3775 (east) and Vehicle V4282 (north) conflict as their paths cross at …</td><td>right-hand rule</td><td>V4282</td><td>V3775</td></tr>
+<tr style='background:#d4edda'><td>4</td><td>yes</td><td>yes</td><td>✓</td><td>Vehicle V4694 (east) and Vehicle V4926 (west) are on a collision course as their…</td><td>right-hand rule</td><td>V4694</td><td>V4926</td></tr>
+<tr style='background:#d4edda'><td>5</td><td>yes</td><td>yes</td><td>✓</td><td>Vehicle V3176 (west) and Vehicle V2482 (south) conflict as their paths cross and…</td><td>right-hand rule</td><td>V3176</td><td>V2482</td></tr>
+<tr style='background:#d4edda'><td>6</td><td>yes</td><td>yes</td><td>✓</td><td>Vehicle V0695 (west) and Vehicle V9504 (north) conflict as their paths cross and…</td><td>right-hand rule</td><td>V9504</td><td>V0695</td></tr>
+<tr style='background:#d4edda'><td>7</td><td>no</td><td>no</td><td>✓</td><td>Vehicle V6519 (east) and Vehicle V5976 (west) are traveling towards each other i…</td><td>arrival time</td><td>V6519</td><td>V5976</td></tr>
+<tr style='background:#d4edda'><td>8</td><td>no</td><td>no</td><td>✓</td><td>Vehicle V2682 (west) and Vehicle V6241 (south) have crossing paths and arrive wi…</td><td>right-hand rule</td><td>V2682</td><td>V6241</td></tr>
+<tr style='background:#d4edda'><td>9</td><td>no</td><td>no</td><td>✓</td><td>Vehicles V2019 and V4480 are traveling in opposite directions on the same lane, …</td><td>arrival time</td><td>V2019</td><td>V4480</td></tr>
+<tr style='background:#d4edda'><td>10</td><td>no</td><td>no</td><td>✓</td><td>Vehicles V4423 (south) and V3097 (north) are traveling towards each other and th…</td><td>right-hand rule</td><td>V4423</td><td>V3097</td></tr>
+<tr style='background:#d4edda'><td>11</td><td>no</td><td>no</td><td>✓</td><td>Vehicles V7892 and V3169 are both traveling north in the same lane, but they do …</td><td>no conflict</td><td>—</td><td>—</td></tr>
+<tr style='background:#d4edda'><td>12</td><td>no</td><td>no</td><td>✓</td><td>Vehicles V1608 (south) and V7792 (west) have crossing paths and arrive within 5 …</td><td>right-hand rule</td><td>V7792</td><td>V1608</td></tr>
+<tr style='background:#d4edda'><td>13</td><td>yes</td><td>yes</td><td>✓</td><td>Vehicle V1188 is traveling south and will cross the path of Vehicle V9389 travel…</td><td>right-hand rule</td><td>V1188</td><td>V9389</td></tr>
+<tr style='background:#d4edda'><td>14</td><td>no</td><td>no</td><td>✓</td><td>The paths of Vehicle V0692 (north) and Vehicle V5210 (west) cross at the interse…</td><td>arrival time</td><td>V5210</td><td>V0692</td></tr>
+<tr style='background:#d4edda'><td>15</td><td>no</td><td>no</td><td>✓</td><td>Vehicle V5156 and Vehicle V5342 are both traveling west and will arrive at the i…</td><td>no conflict</td><td>—</td><td>—</td></tr>
+<tr style='background:#d4edda'><td>16</td><td>yes</td><td>yes</td><td>✓</td><td>Vehicle V6979 (south) and Vehicle V3824 (east) have crossing paths and arrive wi…</td><td>right-hand rule</td><td>V3824</td><td>V6979</td></tr>
+<tr style='background:#f8d7da'><td>17</td><td>no</td><td>yes</td><td>✗</td><td>Vehicle V4375 and Vehicle V7444 are approaching the intersection from different …</td><td>right-hand rule</td><td>V7444</td><td>V4375</td></tr>
+<tr style='background:#d4edda'><td>18</td><td>yes</td><td>yes</td><td>✓</td><td>Vehicles V1907 (north) and V7685 (east) conflict as their paths cross and they a…</td><td>right-hand rule</td><td>V7685</td><td>V1907</td></tr>
+<tr style='background:#d4edda'><td>19</td><td>no</td><td>no</td><td>✓</td><td>No conflict as all vehicles are traveling in the same direction (west) and their…</td><td>no conflict</td><td>—</td><td>—</td></tr>
+<tr style='background:#d4edda'><td>20</td><td>yes</td><td>yes</td><td>✓</td><td>Vehicle V3047 (north) and Vehicle V9434 (west) will conflict as their paths cros…</td><td>right-hand rule</td><td>V3047</td><td>V9434</td></tr>
+<tr style='background:#d4edda'><td>21</td><td>no</td><td>no</td><td>✓</td><td>Vehicle V9103 (west) and Vehicle V3903 (south) have crossing paths and arrive wi…</td><td>right-hand rule</td><td>V9103</td><td>V3903</td></tr>
+<tr style='background:#d4edda'><td>22</td><td>no</td><td>no</td><td>✓</td><td>Vehicle V5249 and Vehicle V0863 are both traveling in opposite directions and th…</td><td>arrival time</td><td>V0863</td><td>V5249</td></tr>
+<tr style='background:#d4edda'><td>23</td><td>no</td><td>no</td><td>✓</td><td>Vehicle V6147 (west) will cross the path of Vehicle V5049 (south) at the interse…</td><td>right-hand rule</td><td>V6147</td><td>V5049</td></tr>
+<tr style='background:#d4edda'><td>24</td><td>no</td><td>no</td><td>✓</td><td>Vehicle V9957 and Vehicle V2397 are both traveling south and their paths cross a…</td><td>arrival time</td><td>V2397</td><td>V9957</td></tr>
+<tr style='background:#d4edda'><td>25</td><td>no</td><td>no</td><td>✓</td><td>The vehicles are in the same lane but traveling in different directions, which m…</td><td>no conflict</td><td>—</td><td>—</td></tr>
+<tr style='background:#d4edda'><td>26</td><td>yes</td><td>yes</td><td>✓</td><td>Vehicles V9785 and V9559 are traveling in opposite directions and their paths cr…</td><td>arrival time</td><td>V9785</td><td>V9559</td></tr>
+<tr style='background:#d4edda'><td>27</td><td>no</td><td>no</td><td>✓</td><td>Vehicle V6092 (south) and Vehicle V1530 (north) are on a collision course as the…</td><td>right-hand rule</td><td>V6092</td><td>V1530</td></tr>
+<tr style='background:#d4edda'><td>28</td><td>yes</td><td>yes</td><td>✓</td><td>Vehicle V8800 is traveling south and will cross the path of vehicles V4290, V627…</td><td>right-hand rule</td><td>V8800</td><td>V4290</td></tr>
+<tr style='background:#d4edda'><td>29</td><td>no</td><td>no</td><td>✓</td><td>Vehicle V9069 (north) and Vehicle V2687 (west) have crossing paths and arrive wi…</td><td>right-hand rule</td><td>V2687</td><td>V9069</td></tr>
+
+</table>
+
+<h2>Priority Rules Seen</h2>
+<ul><li>arrival time</li><li>right-hand rule</li><li>no conflict</li></ul>
+
+</body>
+</html>
