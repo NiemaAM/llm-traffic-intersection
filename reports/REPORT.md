@@ -364,9 +364,9 @@ The evaluation dataset was generated with seed=999, which was never used during 
 
 #### Online Testing: A/B Testing
 
-The A/B test ([`src/evaluation/phoenix_ab_test.py`](https://github.com/NiemaAM/llm-traffic-intersection/blob/main/src/evaluation/phoenix_ab_test.py)) compares the baseline Model A (few-shot gpt-4o-mini) against the production candidate Model B (fine-tuned) using a deterministic MD5-based traffic router. The traffic split assigns 15% of scenarios to Model A and 85% to Model B, reflecting production confidence in the fine-tuned model.
+The model comparison ([`src/evaluation/phoenix_ab_test.py`](https://github.com/NiemaAM/llm-traffic-intersection/blob/main/src/evaluation/phoenix_ab_test.py)) uses a **shadow paired design**: both Model A (few-shot gpt-4o-mini) and Model B (fine-tuned) are called on the exact same 50 scenarios, making metrics directly comparable without confounding from scenario difficulty. In production, only Model B's output is returned to the user; Model A runs silently in parallel. A deterministic MD5-based traffic router is implemented to simulate a 15%/85% production traffic split for realistic routing behaviour, but it does not gate which scenarios each model sees during this evaluation.
 
-**A/B Test Results (n=50 scenarios per model):**
+**Shadow Paired Test Results (n=50 scenarios, same scenarios for both models):**
 
 | Metric | Model A (Few-Shot) | Model B (Fine-Tuned) | Delta |
 |---|---|---|---|
@@ -517,6 +517,37 @@ The `ContinualLearningTrigger` in [`src/monitoring/monitor.py`](https://github.c
 | Data drift | Drift detected | Incoming scenarios differ from training distribution |
 
 Each evaluation is appended to `reports/monitoring/trigger_log.jsonl` for a full audit trail. When retraining is triggered, the signal propagates back to the ZenML training pipeline, which re-runs the complete train-evaluate-serve sequence.
+
+#### Production Monitoring Results
+
+The figures below reflect the state of the monitoring system after multiple pipeline runs, covering 120 prediction events recorded between May 1 and May 16, 2026. Each run appended new predictions to the rolling log and re-evaluated all thresholds against the most recent 100-event window, providing a stable and representative view of the model's production behaviour over time rather than a single-shot snapshot.
+
+The `ContinualLearningTrigger` evaluated the rolling window and found all five safety metrics within their defined thresholds.
+
+| Metric | Observed Value | Threshold | Status |
+|---|---|---|---|
+| Recall | 0.9615 | > 0.92 | Pass |
+| FNR | 0.0385 | < 0.08 | Pass |
+| Rule agreement rate | 0.9500 | > 0.75 | Pass |
+| JSON failure rate | 0.0167 | < 0.02 | Pass |
+| Retraining triggered | No | — | Pass |
+
+The FNR of 3.85% is well below the 8% safety threshold, meaning the deployed fine-tuned model misses fewer than 4 out of every 100 real conflicts. The rule agreement rate of 95% is significantly higher than the 56.7% observed during the offline explainability evaluation, which used a stricter structured reasoning prompt. In production, rule agreement is computed as a simple label match between the LLM output and the rule engine rather than a reasoning-chain comparison, which explains the higher rate. The JSON failure rate of 1.67% reflects a small fraction of responses that failed to parse correctly before the rule-engine fallback was applied, remaining within the 2% serving reliability threshold. The result of the trigger evaluation is `should_retrain: false`, with all metrics passing their thresholds. The audit trail entry in `reports/monitoring/trigger_log.jsonl` records the reason as "All metrics within thresholds."
+
+#### Data Drift Results
+
+The KS-test drift detection compares the reference training distribution against the production prediction logs. The report saved to `reports/monitoring/drift_report.html` shows drift detected across all four monitored numeric columns:
+
+| Column | KS p-value | Drifted |
+|---|---|---|
+| Speed | 0.0000 | Yes |
+| Lane | 0.0000 | Yes |
+| Number of conflicts | 0.0000 | Yes |
+| Distance to intersection | 0.0000 | Yes |
+
+All four columns report a p-value of effectively zero, meaning the null hypothesis of identical distributions is rejected at any conventional significance level. This result is expected: the production log was generated from a fresh synthetic sample drawn from a different random seed than the training data, so distributional differences are introduced by construction rather than by genuine covariate shift in a live deployment. In a real traffic system, this drift signal would indicate that the vehicle arrival patterns seen in production differ from those used to build the training dataset, which could justify data re-collection or targeted augmentation. In this project, it confirms that the drift detection pipeline functions correctly and is sensitive enough to detect moderate distributional differences.
+
+Importantly, drift detection alone does not trigger retraining. The `continual_learning_decision` step requires at least one model quality threshold to be breached independently of drift. Since all recall, FNR, and agreement metrics passed, the retraining signal was not raised despite the drift flag being set. This separation of data health from model health is intentional: a model can remain accurate even when the input distribution shifts slightly, and premature retraining on small distributional shifts can destabilize a well-performing model.
 
 #### Pipeline Orchestration
 
