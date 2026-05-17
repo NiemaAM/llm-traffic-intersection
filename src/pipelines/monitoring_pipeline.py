@@ -145,6 +145,7 @@ def evaluate_on_test_set(
 
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from evaluation.evaluate import evaluate_model_masri as evaluate_model
+
     from models.llm_model import IntersectionLLM
 
     ft_id = os.environ.get("FINE_TUNED_MODEL_ID", "")
@@ -171,6 +172,7 @@ def run_robustness_tests(
 
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from evaluation.evaluate import RobustnessTests
+
     from models.llm_model import IntersectionLLM
 
     ft_id = os.environ.get("FINE_TUNED_MODEL_ID", "")
@@ -199,6 +201,7 @@ def audit_model_bias(
 
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from evaluation.evaluate import audit_bias
+
     from models.llm_model import IntersectionLLM
 
     ft_id = os.environ.get("FINE_TUNED_MODEL_ID", "")
